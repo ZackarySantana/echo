@@ -1,0 +1,15 @@
+<button id="signUpButton">Sign Up</button>
+<script>
+    import { stackClientApp } from "../scripts/stack-client.ts";
+
+    document
+        .getElementById("signUpButton")
+        ?.addEventListener("click", async () => {
+            try {
+                await stackClientApp.signInWithOAuth("google");
+            } catch (error) {
+                console.error("Google sign in failed:", error);
+                alert("Failed to initialize Google sign in");
+            }
+        });
+</script>

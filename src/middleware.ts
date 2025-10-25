@@ -1,0 +1,29 @@
+import { stackFrom } from "./lib/stack-server";
+import { defineMiddleware } from "astro/middleware";
+
+const noAuth = ["/", "/login", "/sign-up", "/oauth/callback"];
+
+export const onRequest = defineMiddleware(async (context, next) => {
+    const timeBefore = Date.now();
+    const user = await stackFrom(context).getUser();
+
+    console.log("Middleware User:", user, "in", Date.now() - timeBefore, "ms");
+
+    if (user) {
+        context.locals.user = user;
+    }
+
+    if (noAuth.includes(context.url.pathname)) {
+        console.log("Skip requiring auth for", context.url.pathname);
+        return next();
+    }
+
+    if (!user) {
+        return context.redirect(
+            "/login?next=" + encodeURIComponent(context.url.pathname),
+            302,
+        );
+    }
+
+    return next();
+});
