@@ -11,5 +11,6 @@ export default defineConfig({
             enabled: true,
         },
         maxDuration: 8,
+        edgeMiddleware: false,
     }),
 });
