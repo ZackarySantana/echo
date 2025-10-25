@@ -7,7 +7,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const timeBefore = Date.now();
     const user = await stackFrom(context).getUser();
 
-    console.log("Middleware User:", user, "in", Date.now() - timeBefore, "ms");
+    console.log("It took:", Date.now() - timeBefore, "ms to get the user");
 
     if (user) {
         context.locals.user = user;
