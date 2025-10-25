@@ -1,7 +1,4 @@
-// We have to import it this way to avoid errors when the middleware
-// calls this file when deployed to Vercel.
-import pkg from "@stackframe/js";
-const { StackServerApp } = pkg;
+import { StackServerApp } from "@stackframe/js";
 
 export function stackFrom(request: Request) {
     return new StackServerApp({
