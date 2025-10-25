@@ -1,9 +1,8 @@
 import { StackServerApp } from "@stackframe/js";
-import type { APIContext } from "astro";
 
-export function stackFrom(ctx: APIContext) {
+export function stackFrom(request: Request) {
     return new StackServerApp({
-        tokenStore: ctx.request,
+        tokenStore: request,
 
         projectId: import.meta.env.PUBLIC_STACK_PROJECT_ID,
         publishableClientKey: import.meta.env

@@ -5,7 +5,7 @@ const noAuth = ["/", "/login", "/sign-up", "/oauth/callback"];
 
 export const onRequest = defineMiddleware(async (context, next) => {
     const timeBefore = Date.now();
-    const user = await stackFrom(context).getUser();
+    const user = await stackFrom(context.request).getUser();
 
     console.log("It took:", Date.now() - timeBefore, "ms to get the user");
 
