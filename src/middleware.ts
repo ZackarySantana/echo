@@ -1,5 +1,5 @@
 import { defineMiddleware } from "astro/middleware";
-import { StackServerApp } from "@stackframe/js";
+import { stackFrom } from "./lib/stack-server";
 
 const noAuth = ["/", "/login", "/sign-up", "/oauth/callback"];
 
@@ -27,14 +27,3 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     return next();
 });
-
-function stackFrom(request: Request) {
-    return new StackServerApp({
-        tokenStore: request,
-
-        projectId: import.meta.env.PUBLIC_STACK_PROJECT_ID,
-        publishableClientKey: import.meta.env
-            .PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY,
-        secretServerKey: import.meta.env.STACK_SECRET_SERVER_KEY,
-    });
-}
