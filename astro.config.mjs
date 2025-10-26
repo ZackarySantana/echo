@@ -14,10 +14,10 @@ export default defineConfig({
     }),
     vite: {
         ssr: {
-            noExternal: ["@stackframe/js"],
+            noExternal: ["@stackframe/js", "echo-wc"],
         },
         optimizeDeps: {
-            include: ["@stackframe/js"],
+            include: ["@stackframe/js", "echo-wc"],
         },
     },
 });

@@ -20,6 +20,9 @@ importers:
       astro:
         specifier: ^5.15.1
         version: 5.15.1(@types/node@24.9.1)(@vercel/functions@2.2.13(@aws-sdk/credential-provider-web-identity@3.917.0))(rollup@4.52.5)(tsx@4.20.6)(typescript@5.9.3)
+      echo-wc:
+        specifier: link:echo-wc
+        version: link:echo-wc
     devDependencies:
       prettier:
         specifier: ^3.6.2

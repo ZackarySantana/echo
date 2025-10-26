@@ -12,7 +12,8 @@
         "@astrojs/vercel": "^9.0.0",
         "@neondatabase/serverless": "^1.0.2",
         "@stackframe/js": "^2.8.47",
-        "astro": "^5.15.1"
+        "astro": "^5.15.1",
+        "echo-wc": "link:echo-wc"
     },
     "devDependencies": {
         "prettier": "^3.6.2"
