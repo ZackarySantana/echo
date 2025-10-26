@@ -12,4 +12,12 @@ export default defineConfig({
         },
         maxDuration: 8,
     }),
+    vite: {
+        ssr: {
+            noExternal: ["@stackframe/js"],
+        },
+        optimizeDeps: {
+            include: ["@stackframe/js"],
+        },
+    },
 });
