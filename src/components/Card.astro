@@ -7,7 +7,7 @@ interface Props {
 const { class: className } = Astro.props;
 ---
 
-<div class={cn("bg-bg-card rounded-lg px-6 py-8 shadow-md", className)}>
+<div class={cn("bg-bg-card rounded-xl px-6 py-8 shadow-md", className)}>
     <slot />
     {
         Astro.slots.has("or") && (
