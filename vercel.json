@@ -1,7 +1,7 @@
 {
     "headers": [
         {
-            "source": "/assets/(.*).js",
+            "source": "/_astro/(.*).js",
             "headers": [
                 {
                     "key": "Cache-Control",
