@@ -10,12 +10,19 @@
     },
     "dependencies": {
         "@astrojs/vercel": "^9.0.0",
+        "@lucide/astro": "^0.548.0",
         "@neondatabase/serverless": "^1.0.2",
         "@stackframe/js": "^2.8.47",
+        "@tailwindcss/vite": "^4.1.16",
         "astro": "^5.15.1",
-        "echo-wc": "link:echo-wc"
+        "clsx": "^2.1.1",
+        "echo-wc": "link:echo-wc",
+        "tailwind-merge": "^3.3.1",
+        "tailwindcss": "^4.1.16"
     },
     "devDependencies": {
-        "prettier": "^3.6.2"
+        "prettier": "^3.6.2",
+        "prettier-plugin-astro": "^0.14.1",
+        "prettier-plugin-tailwindcss": "^0.7.1"
     }
 }

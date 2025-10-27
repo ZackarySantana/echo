@@ -1,0 +1,24 @@
+---
+import { cn } from "../lib/cn";
+interface Props {
+    class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div class={cn("bg-bg-card rounded-lg px-6 py-8 shadow-md", className)}>
+    <slot />
+    {
+        Astro.slots.has("or") && (
+            <>
+                <div class="my-4 flex items-center gap-4">
+                    <hr class="w-full border-zinc-700" />
+                    <p class="text-xs text-zinc-500">OR</p>
+                    <hr class="w-full border-zinc-700" />
+                </div>
+                <slot name="or" />
+            </>
+        )
+    }
+</div>

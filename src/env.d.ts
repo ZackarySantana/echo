@@ -9,6 +9,10 @@ declare global {
     namespace App {
         interface Locals {
             user: CurrentServerUser | CurrentInternalServerUser;
+            publicPageUser:
+                | CurrentServerUser
+                | CurrentInternalServerUser
+                | null;
         }
     }
 }

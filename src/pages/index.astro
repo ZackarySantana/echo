@@ -1,13 +1,47 @@
 ---
+import Card from "../components/Card.astro";
+import LinkButton from "../components/LinkButton.astro";
 import MyComponent from "../components/MyComponent.astro";
-import Welcome from "../components/Welcome.astro";
+import TextInput from "../components/TextInput.astro";
 import Layout from "../layouts/Layout.astro";
 
-const user = Astro.locals.user;
+import { Podcast } from "@lucide/astro";
+
+const user = Astro.locals.publicPageUser;
 ---
 
 <Layout>
-    <MyComponent />
-    {user?.displayName}
-    <Welcome />
+    <div class="flex min-h-dvh flex-col items-center justify-center gap-5">
+        <div class="flex items-center gap-3 text-white">
+            <Podcast
+                class="h-10 w-10 bg-linear-to-r from-blue-500 to-purple-500 bg-clip-text"
+            />
+            <h1 class="text-4xl font-bold">Echo</h1>
+        </div>
+        <p class="text-xl font-medium">
+            Interactive Presentations, Simplified.
+        </p>
+        <Card class="min-w-[550px]">
+            <LinkButton href="/sign-up" primary
+                >Sign Up for an Account</LinkButton
+            >
+            <p
+                class="pt-2 pb-4 text-center text-sm tracking-wider text-neutral-400"
+            >
+                Create an account to save and manage your presentations.
+            </p>
+            <div slot="or">
+                <p class="text-center">
+                    Joining a session? Enter your code to continue.
+                </p>
+                <div class="flex items-center justify-center gap-2 pt-4">
+                    <TextInput
+                        placeholder="Enter Session Code"
+                        id="session-code"
+                    />
+                    <LinkButton href="/join" class="text-sm">Join</LinkButton>
+                </div>
+            </div>
+        </Card>
+    </div>
 </Layout>
