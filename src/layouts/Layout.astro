@@ -1,5 +1,11 @@
 ---
 import "./global.css";
+
+interface Props {
+    title?: string;
+}
+
+const { title = "Echo - Interactive Presentations" } = Astro.props;
 ---
 
 <!doctype html>
@@ -9,7 +15,7 @@ import "./global.css";
         <meta name="viewport" content="width=device-width" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta name="generator" content={Astro.generator} />
-        <title>Echo - Interactive Presentations</title>
+        <title>{title}</title>
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap"
             rel="stylesheet"
