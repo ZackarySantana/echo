@@ -18,7 +18,7 @@
 <button
     id="sidebar-toggle"
     type="button"
-    class="bg-bg-sidebar fixed top-4 left-4 z-50 cursor-pointer rounded-lg p-2 text-gray-600 transition-all hover:bg-gray-900 focus:bg-gray-900 focus:outline-none sm:hidden"
+    class="bg-bg-sidebar fixed top-4 left-4 z-50 cursor-pointer rounded-lg p-2 text-gray-600 transition-all focus:outline-none sm:hidden"
     aria-label="Toggle sidebar"
 >
     <svg
@@ -61,6 +61,8 @@
         overlay?.classList.remove("hidden");
         hamburgerIcon?.classList.add("hidden");
         closeIcon?.classList.remove("hidden");
+        toggleBtn?.classList.add("bg-bg");
+        toggleBtn?.classList.remove("bg-bg-sidebar");
     }
 
     function closeSidebar() {
@@ -68,6 +70,8 @@
         overlay?.classList.add("hidden");
         hamburgerIcon?.classList.remove("hidden");
         closeIcon?.classList.add("hidden");
+        toggleBtn?.classList.remove("bg-bg");
+        toggleBtn?.classList.add("bg-bg-sidebar");
     }
 
     toggleBtn?.addEventListener("click", () => {
