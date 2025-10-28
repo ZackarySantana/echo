@@ -1,11 +1,24 @@
 ---
+import Logo from "../components/Logo.astro";
 import Button from "../components/primitives/Button.astro";
+import Card from "../components/primitives/Card.astro";
 import LinkButton from "../components/primitives/LinkButton.astro";
+import Text from "../components/primitives/Text.astro";
 import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout centerItems>
-    <Button primary id="signUpButton">Sign up with Google</Button>
+    <Logo withSlogan />
+    <Card class="mt-5 flex flex-col items-center sm:min-w-[550px]">
+        <Button primary id="signUpButton" class="w-full"
+            >Sign up with Google</Button
+        >
+        <p
+            class="mx-auto max-w-[300px] pt-2 text-center text-sm tracking-wider text-wrap text-neutral-400 sm:max-w-full"
+        >
+            Currently, we only support Google sign-ups.
+        </p>
+    </Card>
 </Layout>
 
 <script>

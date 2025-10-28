@@ -1,6 +1,6 @@
 export function buttonClass(primary: boolean): string {
     let cls =
-        "block rounded-lg px-8 py-3 text-center font-semibold transition ";
+        "block rounded-lg px-8 py-3 text-center font-semibold transition cursor-pointer ";
 
     if (primary) {
         cls +=
