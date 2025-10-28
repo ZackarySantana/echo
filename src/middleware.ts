@@ -1,5 +1,5 @@
 import { defineMiddleware } from "astro/middleware";
-import { stackFrom } from "./lib/stack-server";
+// import { stackFrom } from "./lib/stack-server";
 
 export const onRequest = defineMiddleware(async (context, next) => {
     const timeBefore = Date.now();

@@ -1,67 +1,51 @@
 ---
-import Card from "../components/Card.astro";
-import LinkButton from "../components/LinkButton.astro";
-import MyComponent from "../components/MyComponent.astro";
-import TextInput from "../components/TextInput.astro";
+import Logo from "../components/Logo.astro";
+import Card from "../components/primitives/Card.astro";
+import LinkButton from "../components/primitives/LinkButton.astro";
+import TextInput from "../components/primitives/TextInput.astro";
 import Layout from "../layouts/Layout.astro";
-
-import { Podcast } from "@lucide/astro";
 
 const user = Astro.locals.publicPageUser;
 ---
 
-<Layout>
-    <div
-        class="flex min-h-dvh flex-col items-center justify-center gap-5 text-center"
-    >
-        <div class="flex items-center gap-3 text-white">
-            <Podcast
-                class="h-10 w-10 bg-linear-to-r from-blue-500 to-purple-500 bg-clip-text"
-            />
-            <h1 class="text-4xl font-bold">Echo</h1>
-        </div>
-        <p class="text-xl font-medium tracking-wide">
-            Interactive Presentations, Simplified.
+<Layout centerItems>
+    <Logo />
+    <p class="text-xl font-medium tracking-wide">
+        Interactive Presentations, Simplified.
+    </p>
+    <Card class="mt-5 sm:min-w-[550px]">
+        <LinkButton href="/sign-up" primary>Sign Up for an Account</LinkButton>
+        <p
+            class="mx-auto max-w-[300px] pt-2 pb-4 text-center text-sm tracking-wider text-wrap text-neutral-400 sm:max-w-full"
+        >
+            Create an account to save and manage your presentations.
         </p>
-        <Card class="mt-5 sm:min-w-[550px]">
-            <LinkButton href="/sign-up" primary
-                >Sign Up for an Account</LinkButton
-            >
-            <p
-                class="mx-auto max-w-[300px] pt-2 pb-4 text-center text-sm tracking-wider text-wrap text-neutral-400 sm:max-w-full"
-            >
-                Create an account to save and manage your presentations.
+        <div slot="or">
+            <p class="text-center">
+                Joining a session? Enter your code to continue.
             </p>
-            <div slot="or">
-                <p class="text-center">
-                    Joining a session? Enter your code to continue.
-                </p>
-                <div class="flex items-center justify-center gap-2 pt-4">
-                    <TextInput
-                        placeholder="Enter Session Code"
-                        id="session-code"
-                    />
-                    <LinkButton href="/join" class="text-sm" id="join-button"
-                        >Join</LinkButton
-                    >
-                    <script>
-                        // Update the join button link based on input
-                        const input = document.getElementById(
-                            "session-code",
-                        )! as HTMLInputElement;
-                        const button = document.getElementById(
-                            "join-button",
-                        )! as HTMLAnchorElement;
+            <div class="flex items-center justify-center gap-2 pt-4">
+                <TextInput placeholder="Enter Session Code" id="session-code" />
+                <LinkButton href="/join" class="text-sm" id="join-button"
+                    >Join</LinkButton
+                >
+                <script>
+                    // Update the join button link based on input
+                    const input = document.getElementById(
+                        "session-code",
+                    )! as HTMLInputElement;
+                    const button = document.getElementById(
+                        "join-button",
+                    )! as HTMLAnchorElement;
 
-                        input.addEventListener("input", () => {
-                            const code = input.value.trim();
-                            button.href = code
-                                ? `/join?code=${encodeURIComponent(code)}`
-                                : "/join";
-                        });
-                    </script>
-                </div>
+                    input.addEventListener("input", () => {
+                        const code = input.value.trim();
+                        button.href = code
+                            ? `/join?code=${encodeURIComponent(code)}`
+                            : "/join";
+                    });
+                </script>
             </div>
-        </Card>
-    </div>
+        </div>
+    </Card>
 </Layout>

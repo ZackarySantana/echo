@@ -3,9 +3,18 @@ import "./global.css";
 
 interface Props {
     title?: string;
+    centerItems?: boolean;
 }
 
-const { title = "Echo - Interactive Presentations" } = Astro.props;
+const { title = "Echo - Interactive Presentations", centerItems = false } =
+    Astro.props;
+
+let centerClasses = "";
+
+if (centerItems) {
+    centerClasses +=
+        "flex flex-col items-center justify-center gap-5 text-center min-h-dvh";
+}
 ---
 
 <!doctype html>
@@ -45,7 +54,7 @@ const { title = "Echo - Interactive Presentations" } = Astro.props;
         </script>
     </head>
     <body
-        class="bg-bg text-bg-text h-full min-h-dvh w-full font-['Inter',sans-serif]"
+        class={`bg-bg text-bg-text h-full min-h-dvh w-full font-['Inter',sans-serif] ${centerClasses}`}
     >
         <slot />
     </body>

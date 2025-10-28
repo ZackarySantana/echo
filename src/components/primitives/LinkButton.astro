@@ -1,0 +1,15 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { cn } from "../../lib/cn";
+import { buttonClass } from "./button";
+
+interface Props extends HTMLAttributes<"a"> {
+    primary?: boolean;
+}
+
+const { primary, class: className, ...rest } = Astro.props;
+---
+
+<a class={cn(buttonClass(primary ?? false), className)} {...rest}>
+    <slot />
+</a>

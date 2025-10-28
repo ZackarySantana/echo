@@ -1,4 +1,13 @@
-<button id="signUpButton">Sign Up</button>
+---
+import Button from "../components/primitives/Button.astro";
+import LinkButton from "../components/primitives/LinkButton.astro";
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout centerItems>
+    <Button primary id="signUpButton">Sign up with Google</Button>
+</Layout>
+
 <script>
     import { stackClientApp } from "../scripts/stack-client.ts";
 
