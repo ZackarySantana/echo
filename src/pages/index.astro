@@ -6,6 +6,6 @@ import IndexLoggedOut from "./_indexLoggedOut.astro";
 const user = Astro.locals.publicPageUser;
 ---
 
-<Layout centerItems>
+<Layout centerItems={!user}>
     {user ? <IndexSignedIn /> : <IndexLoggedOut />}
 </Layout>

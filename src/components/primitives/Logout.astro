@@ -1,0 +1,30 @@
+---
+import { cn } from "../../lib/cn";
+
+interface Props {
+    class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+---
+
+<button class={cn("logout-button cursor-pointer", className)}>
+    <slot />
+</button>
+
+<script>
+    import { stackClientApp } from "../../scripts/stack-client.ts";
+    const user = await stackClientApp.getUser();
+    if (user) {
+        document.querySelectorAll(".logout-button").forEach((button) => {
+            button.addEventListener("click", async () => {
+                button.classList.add("cursor-wait", "opacity-50");
+                button.classList.remove("cursor-pointer");
+                button.setAttribute("aria-disabled", "true");
+
+                await user.signOut();
+                window.location.replace("/");
+            });
+        });
+    }
+</script>

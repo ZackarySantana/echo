@@ -1,6 +1,14 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
 <script>
     import { stackClientApp } from "../../scripts/stack-client.ts";
     await stackClientApp.callOAuthCallback();
 
     window.location.replace("/");
 </script>
+
+<Layout centerItems>
+    <p>Signing in...</p>
+</Layout>

@@ -1,1 +1,24 @@
-<p>Testing</p>
+---
+import { LogOut } from "@lucide/astro";
+import Button from "../components/primitives/Button.astro";
+import Sidebar from "../components/primitives/Sidebar.astro";
+import SidebarItem from "../components/primitives/SidebarItem.astro";
+import Text from "../components/primitives/Text.astro";
+import Logout from "../components/primitives/Logout.astro";
+---
+
+<div class="flex">
+    <Sidebar>
+        <p>Test</p>
+        <Logout slot="footer" class="w-full">
+            <SidebarItem>
+                <LogOut class="h-5 w-5 shrink-0" />
+
+                <span>Sign Out</span>
+            </SidebarItem>
+        </Logout>
+    </Sidebar>
+    <main>
+        <Text type="heading">My Presentations</Text>
+    </main>
+</div>

@@ -1,0 +1,22 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+const user = Astro.locals.publicPageUser;
+
+if (!user) {
+    return Astro.redirect("/");
+}
+---
+
+<script>
+    import { stackClientApp } from "../../scripts/stack-client.ts";
+    const user = await stackClientApp.getUser();
+    if (user) {
+        await user.signOut();
+    }
+    window.location.replace("/");
+</script>
+
+<Layout centerItems>
+    <p>Signing out...</p>
+</Layout>
