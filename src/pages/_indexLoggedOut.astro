@@ -17,16 +17,19 @@ import Button from "../components/primitives/Button.astro";
         <script>
             import { stackClientApp } from "../scripts/stack-client.ts";
 
-            document
-                .getElementById("googleSignInButton")
-                ?.addEventListener("click", async () => {
-                    try {
-                        await stackClientApp.signInWithOAuth("google");
-                    } catch (error) {
-                        console.error("Google sign in failed:", error);
-                        alert("Failed to initialize Google sign in");
-                    }
-                });
+            const button = document.getElementById("googleSignInButton");
+
+            button?.addEventListener("click", async () => {
+                button.classList.add("cursor-wait", "opacity-50");
+                button.classList.remove("cursor-pointer");
+                button.setAttribute("aria-disabled", "true");
+                try {
+                    await stackClientApp.signInWithOAuth("google");
+                } catch (error) {
+                    console.error("Google sign in failed:", error);
+                    alert("Failed to initialize Google sign in");
+                }
+            });
         </script>
     </div>
     <p
