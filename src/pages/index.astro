@@ -1,69 +1,11 @@
 ---
-import Logo from "../components/Logo.astro";
-import Card from "../components/primitives/Card.astro";
-import LinkButton from "../components/primitives/LinkButton.astro";
-import TextInput from "../components/primitives/TextInput.astro";
 import Layout from "../layouts/Layout.astro";
-
-import GoogleSVG from "../assets/google.svg";
-import Button from "../components/primitives/Button.astro";
+import IndexSignedIn from "./_indexSignedIn.astro";
+import IndexLoggedOut from "./_indexLoggedOut.astro";
 
 const user = Astro.locals.publicPageUser;
 ---
 
 <Layout centerItems>
-    <Logo withSlogan />
-    <Card class="mt-5 sm:min-w-[550px]">
-        <div class="flex items-center justify-around gap-5">
-            <Button class="h-fit w-fit p-4" id="googleSignInButton" primary>
-                <GoogleSVG class="h-4 w-4" />
-            </Button>
-            <script>
-                import { stackClientApp } from "../scripts/stack-client.ts";
-
-                document
-                    .getElementById("googleSignInButton")
-                    ?.addEventListener("click", async () => {
-                        try {
-                            await stackClientApp.signInWithOAuth("google");
-                        } catch (error) {
-                            console.error("Google sign in failed:", error);
-                            alert("Failed to initialize Google sign in");
-                        }
-                    });
-            </script>
-        </div>
-        <p
-            class="mx-auto max-w-[300px] pt-2 pb-4 text-center text-sm tracking-wider text-wrap text-neutral-400 sm:max-w-full"
-        >
-            Use an account to save and manage your presentations.
-        </p>
-        <div slot="or">
-            <p class="text-center">
-                Joining a session? Enter your code to continue.
-            </p>
-            <div class="flex items-center justify-center gap-2 pt-4">
-                <TextInput placeholder="Enter Session Code" id="session-code" />
-                <LinkButton href="/join" class="text-sm" id="join-button"
-                    >Join</LinkButton
-                >
-                <script>
-                    // Update the join button link based on input
-                    const input = document.getElementById(
-                        "session-code",
-                    )! as HTMLInputElement;
-                    const button = document.getElementById(
-                        "join-button",
-                    )! as HTMLAnchorElement;
-
-                    input.addEventListener("input", () => {
-                        const code = input.value.trim();
-                        button.href = code
-                            ? `/join?code=${encodeURIComponent(code)}`
-                            : "/join";
-                    });
-                </script>
-            </div>
-        </div>
-    </Card>
+    {user ? <IndexSignedIn /> : <IndexLoggedOut />}
 </Layout>
