@@ -11,8 +11,9 @@ import Button from "../components/primitives/Button.astro";
 <Logo withSlogan />
 <Card class="mt-5 sm:min-w-[550px]">
     <div class="flex items-center justify-around gap-5">
-        <Button class="h-fit w-fit p-4" id="googleSignInButton" primary>
-            <GoogleSVG class="h-4 w-4" />
+        <Button class="h-fit w-full p-4" id="googleSignInButton" primary>
+            <!-- <GoogleSVG class="h-4 w-4" /> -->
+            Continue with Google
         </Button>
         <script>
             import { stackClientApp } from "../scripts/stack-client.ts";
