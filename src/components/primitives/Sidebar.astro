@@ -1,5 +1,5 @@
 ---
-import { Settings } from "@lucide/astro";
+import { Hamburger, Menu, Settings, X } from "@lucide/astro";
 import SidebarItem from "./SidebarItem.astro";
 ---
 
@@ -8,38 +8,13 @@ import SidebarItem from "./SidebarItem.astro";
     class="border-border-sidebar bg-bg-sidebar fixed top-0 right-0 left-0 z-50 flex h-16 items-center border-b px-4 sm:hidden"
 >
     <div class="flex w-10 items-center justify-center">
-        <button
-            id="sidebar-toggle"
-            type="button"
-            class="cursor-pointer rounded-lg p-2 text-gray-600 transition-all hover:bg-gray-100 focus:outline-none"
-            aria-label="Toggle sidebar"
-        >
-            <svg
-                id="hamburger-icon"
-                class="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-            <svg
-                id="close-icon"
-                class="hidden h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+        <button id="sidebar-toggle" type="button" aria-label="Toggle sidebar">
+            <SidebarItem id="hamburger-icon" class="p-3">
+                <Menu class="h-5 w-5" />
+            </SidebarItem>
+            <SidebarItem id="close-icon" class="hidden p-3">
+                <X class="h-5 w-5" />
+            </SidebarItem>
         </button>
     </div>
     <div class="flex-1 text-center">

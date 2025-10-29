@@ -1,14 +1,16 @@
 ---
+import { type HTMLAttributes } from "astro/types";
 import { cn } from "../../lib/cn";
 
-interface Props {
+interface Props extends HTMLAttributes<"div"> {
     class?: string;
 }
 
-const { class: className = "" } = Astro.props;
+const { class: className = "", ...rest } = Astro.props;
 ---
 
 <div
+    {...rest}
     class={cn(
         "flex items-center gap-3 rounded-xl px-4 py-4 text-sm text-[#92a4c7] transition-colors hover:bg-[#27334d] hover:text-[#5e8bf7] [&.active]:bg-blue-950 [&.active]:text-blue-400",
         className,
