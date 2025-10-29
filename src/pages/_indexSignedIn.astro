@@ -6,6 +6,8 @@ import SidebarItem from "../components/primitives/SidebarItem.astro";
 import Text from "../components/primitives/Text.astro";
 import Logout from "../components/primitives/Logout.astro";
 import Logo from "../components/Logo.astro";
+import LinkButton from "../components/primitives/LinkButton.astro";
+import TextInput from "../components/primitives/TextInput.astro";
 ---
 
 <div class="flex">
@@ -25,7 +27,32 @@ import Logo from "../components/Logo.astro";
             </SidebarItem>
         </Logout>
     </Sidebar>
-    <main class="ml-10 px-8 py-5 pt-20 sm:ml-0 sm:pt-5">
-        <Text type="heading">My Presentations</Text>
+    <main
+        class="ml-10 flex w-full flex-col px-8 py-5 pt-20 sm:ml-0 sm:items-center sm:pt-10"
+    >
+        <Text type="heading">Join a Session</Text>
+
+        <div class="flex gap-5 pt-5">
+            <TextInput placeholder="Enter Session Code" id="session-code" />
+            <LinkButton href="/join" class="text-sm" id="join-button" primary>
+                Join
+            </LinkButton>
+            <script>
+                // Update the join button link based on input
+                const input = document.getElementById(
+                    "session-code",
+                )! as HTMLInputElement;
+                const button = document.getElementById(
+                    "join-button",
+                )! as HTMLAnchorElement;
+
+                input.addEventListener("input", () => {
+                    const code = input.value.trim();
+                    button.href = code
+                        ? `/join?code=${encodeURIComponent(code)}`
+                        : "/join";
+                });
+            </script>
+        </div>
     </main>
 </div>
