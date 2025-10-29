@@ -1,0 +1,58 @@
+---
+import { CirclePlus, PlusCircle } from '@lucide/astro';
+
+interface Props {
+    id?: string;
+    title?: string;
+    image?: string;
+    skeleton?: boolean;
+}
+
+const { title, image, skeleton = false, id } = Astro.props;
+
+let href = "/create-presentation";
+
+if (id) {
+    href = `/presentation/${id}`;
+}
+---
+
+<a
+    href={`/presentation/${id}`}
+    class="group relative aspect-4/3 w-full flex-col overflow-hidden rounded-xl bg-linear-to-br from-gray-800 to-gray-900 transition-all hover:scale-[1.02] hover:shadow-xl hidden sm:flex"
+    class:list={{
+        'cursor-pointer': `/presentation/${id}`,
+        'animate-pulse': skeleton,
+    }}
+>
+    {skeleton ? (
+        <!-- Skeleton state -->
+        <>
+            <div class="h-2/3 bg-linear-to-br from-gray-700 to-gray-800"></div>
+            <div class="flex flex-1 items-center px-6">
+                <p class="text-sm font-semibold">New Presentation</p>
+            </div>
+            <CirclePlus class="w-10 h-10 top-[calc(50%-40px)] left-[calc(50%-20px)] absolute text-white" />
+        </>
+    ) : (
+        <!-- Normal state -->
+        <>
+            {image ? (
+                <div class="h-2/3 overflow-hidden">
+                    <img
+                        src={image}
+                        alt={title || 'Presentation'}
+                        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                </div>
+            ) : (
+                <div class="h-2/3 bg-linear-to-br from-blue-400 to-blue-700"></div>
+            )}
+            <div class="flex flex-1 items-center px-6">
+                <h3 class="text-sm font-semibold text-white">
+                    {title || 'Untitled Presentation'}
+                </h3>
+            </div>
+        </>
+    )}
+</a>

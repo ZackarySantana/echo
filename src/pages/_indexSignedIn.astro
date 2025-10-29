@@ -1,18 +1,24 @@
 ---
+import PresentationCard from "../components/primitives/PresentationCard.astro";
 import Text from "../components/primitives/Text.astro";
 import LinkButton from "../components/primitives/LinkButton.astro";
 import TextInput from "../components/primitives/TextInput.astro";
 import MainSidebar from "../components/MainSidebar.astro";
+import { ArrowRight } from "@lucide/astro";
 ---
 
 <div class="flex">
     <MainSidebar />
     <main
-        class="ml-0 flex w-full flex-col items-center px-8 py-5 pt-20 sm:ml-10 sm:pt-10"
+        class="ml-0 flex w-full flex-col px-8 py-5 pt-20 sm:ml-10 sm:items-center sm:pt-10"
     >
-        <Text type="heading">Join a Session</Text>
+        <Text type="heading" class="text-2xl sm:text-3xl">
+            Join a Session
+        </Text>
 
-        <div class="flex w-full flex-col gap-3 pt-5 sm:flex-row">
+        <div
+            class="flex w-full flex-col gap-3 pt-5 sm:flex-row sm:justify-center"
+        >
             <TextInput
                 placeholder="Enter Session Code"
                 id="session-code"
@@ -51,5 +57,61 @@ import MainSidebar from "../components/MainSidebar.astro";
                 });
             </script>
         </div>
+
+        <div class="mt-10 flex w-full items-center justify-between">
+            <Text type="heading" class="text-2xl sm:text-3xl">
+                My Presentations
+            </Text>
+            <a
+                href="/my-presentation"
+                class="inline-block text-sm text-blue-400 transition-all hover:underline sm:hidden"
+            >
+                See all <ArrowRight class="inline-block h-4 w-4" />
+            </a>
+            <TextInput
+                placeholder="Search my Presentations"
+                id="search-my-presentations"
+                class="hidden sm:inline-block sm:w-[300px]"
+            />
+        </div>
+        <div class="flex w-full gap-5 pt-5 sm:grid sm:grid-cols-3">
+            <PresentationCard id="testing" title="My first presentation" />
+            <PresentationCard id="testing2" title="Solid" />
+            <PresentationCard skeleton />
+        </div>
+        <a
+            href="/my-presentation"
+            class="mt-5 hidden text-sm text-blue-400 transition-all hover:underline sm:inline-block"
+        >
+            View all
+        </a>
+
+        <div class="mt-10 flex w-full items-center justify-between">
+            <Text type="heading" class="text-2xl sm:text-3xl">
+                Community Presentations
+            </Text>
+            <a
+                href="/my-presentation"
+                class="inline-block text-sm text-blue-400 transition-all hover:underline sm:hidden"
+            >
+                Explore <ArrowRight class="inline-block h-4 w-4" />
+            </a>
+            <TextInput
+                placeholder="Search Community Presentations"
+                id="search-community-presentations"
+                class="hidden sm:inline-block sm:w-[300px]"
+            />
+        </div>
+        <div class="flex w-full gap-5 pt-5 sm:grid sm:grid-cols-3">
+            <PresentationCard id="testing" title="React" />
+            <PresentationCard id="testing2" title="Firebase" />
+            <PresentationCard id="testing3" title="How to present 101" />
+        </div>
+        <a
+            href="/my-presentation"
+            class="mt-5 hidden text-sm text-blue-400 transition-all hover:underline sm:inline-block"
+        >
+            Explore More
+        </a>
     </main>
 </div>

@@ -1,14 +1,17 @@
 ---
-interface Props {
+import { type HTMLAttributes } from "astro/types";
+import { cn } from "../../lib/cn";
+
+interface Props extends HTMLAttributes<"h1" | "h2"> {
     type: "heading" | "subheading" | "body" | "caption";
 }
 
-const { type } = Astro.props;
+const { type, class: className, ...rest } = Astro.props;
 ---
 
 {
     type === "heading" && (
-        <h1 class="text-3xl font-bold">
+        <h1 class={cn("text-3xl font-bold", className)} {...rest}>
             <slot />
         </h1>
     )
@@ -16,7 +19,7 @@ const { type } = Astro.props;
 
 {
     type === "subheading" && (
-        <h2 class="text-xl font-semibold">
+        <h2 class={cn("text-xl font-semibold", className)} {...rest}>
             <slot />
         </h2>
     )
