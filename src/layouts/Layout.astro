@@ -1,13 +1,18 @@
 ---
+import { cn } from "../lib/cn";
 import "./global.css";
 
 interface Props {
     title?: string;
     centerItems?: boolean;
+    class?: string;
 }
 
-const { title = "Echo - Interactive Presentations", centerItems = false } =
-    Astro.props;
+const {
+    title = "Echo - Interactive Presentations",
+    centerItems = false,
+    class: className = "",
+} = Astro.props;
 
 let centerClasses = "";
 
@@ -54,7 +59,11 @@ if (centerItems) {
         </script>
     </head>
     <body
-        class={`bg-bg text-bg-text h-full min-h-dvh w-full font-['Inter',sans-serif] ${centerClasses}`}
+        class={cn(
+            "bg-bg text-bg-text h-full min-h-dvh w-full font-['Inter',sans-serif]",
+            centerClasses,
+            className,
+        )}
     >
         <slot />
     </body>
