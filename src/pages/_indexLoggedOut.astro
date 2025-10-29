@@ -43,7 +43,11 @@ import Button from "../components/primitives/Button.astro";
             Joining a session? Enter your code to continue.
         </p>
         <div class="flex items-center justify-center gap-2 pt-4">
-            <TextInput placeholder="Enter Session Code" id="session-code" />
+            <TextInput
+                placeholder="Enter Session Code"
+                id="session-code"
+                inCard
+            />
             <LinkButton href="/join" class="text-sm" id="join-button"
                 >Join</LinkButton
             >

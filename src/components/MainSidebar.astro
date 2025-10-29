@@ -1,0 +1,24 @@
+---
+import { LogOut } from "@lucide/astro";
+import Logo from "./Logo.astro";
+import Logout from "./primitives/Logout.astro";
+import SidebarItem from "./primitives/SidebarItem.astro";
+import Sidebar from "./primitives/Sidebar.astro";
+---
+
+<Sidebar>
+    <div
+        slot="title"
+        class="flex w-full items-center justify-center gap-2 sm:justify-start"
+    >
+        <Logo size="medium" />
+    </div>
+    <p>Test</p>
+    <Logout slot="footer" class="w-full">
+        <SidebarItem>
+            <LogOut class="h-5 w-5 shrink-0" />
+
+            <span>Sign Out</span>
+        </SidebarItem>
+    </Logout>
+</Sidebar>

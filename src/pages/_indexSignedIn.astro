@@ -1,40 +1,37 @@
 ---
-import { LogOut, Podcast } from "@lucide/astro";
-import Button from "../components/primitives/Button.astro";
-import Sidebar from "../components/primitives/Sidebar.astro";
-import SidebarItem from "../components/primitives/SidebarItem.astro";
 import Text from "../components/primitives/Text.astro";
-import Logout from "../components/primitives/Logout.astro";
-import Logo from "../components/Logo.astro";
 import LinkButton from "../components/primitives/LinkButton.astro";
 import TextInput from "../components/primitives/TextInput.astro";
+import MainSidebar from "../components/MainSidebar.astro";
 ---
 
 <div class="flex">
-    <Sidebar>
-        <div
-            slot="title"
-            class="flex w-full items-center justify-center gap-2 sm:justify-start"
-        >
-            <Logo size="medium" />
-        </div>
-        <p>Test</p>
-        <Logout slot="footer" class="w-full">
-            <SidebarItem>
-                <LogOut class="h-5 w-5 shrink-0" />
-
-                <span>Sign Out</span>
-            </SidebarItem>
-        </Logout>
-    </Sidebar>
+    <MainSidebar />
     <main
-        class="ml-10 flex w-full flex-col px-8 py-5 pt-20 sm:ml-0 sm:items-center sm:pt-10"
+        class="ml-0 flex w-full flex-col items-center px-8 py-5 pt-20 sm:ml-10 sm:pt-10"
     >
         <Text type="heading">Join a Session</Text>
 
-        <div class="flex gap-5 pt-5">
-            <TextInput placeholder="Enter Session Code" id="session-code" />
-            <LinkButton href="/join" class="text-sm" id="join-button" primary>
+        <div class="flex w-full flex-col gap-3 pt-5 sm:flex-row">
+            <TextInput
+                placeholder="Enter Session Code"
+                id="session-code"
+                class="sm:w-[300px]"
+            />
+            <LinkButton
+                href="/join"
+                class="text-sm"
+                class="join-button sm:hidden"
+                primary
+            >
+                Join Session
+            </LinkButton>
+            <LinkButton
+                href="/join"
+                class="text-sm"
+                class="join-button hidden sm:inline-block"
+                primary
+            >
                 Join
             </LinkButton>
             <script>
@@ -42,15 +39,15 @@ import TextInput from "../components/primitives/TextInput.astro";
                 const input = document.getElementById(
                     "session-code",
                 )! as HTMLInputElement;
-                const button = document.getElementById(
-                    "join-button",
-                )! as HTMLAnchorElement;
 
-                input.addEventListener("input", () => {
-                    const code = input.value.trim();
-                    button.href = code
-                        ? `/join?code=${encodeURIComponent(code)}`
-                        : "/join";
+                document.querySelectorAll(".join-button").forEach((button) => {
+                    if (!(button instanceof HTMLAnchorElement)) return;
+                    input.addEventListener("input", () => {
+                        const code = input.value.trim();
+                        button.href = code
+                            ? `/join?code=${encodeURIComponent(code)}`
+                            : "/join";
+                    });
                 });
             </script>
         </div>

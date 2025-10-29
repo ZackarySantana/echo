@@ -3,15 +3,26 @@ import type { HTMLAttributes } from "astro/types";
 import { cn } from "../../lib/cn";
 
 // props are all props to an Input element
-interface Props extends HTMLAttributes<"input"> {}
+interface Props extends HTMLAttributes<"input"> {
+    inCard?: boolean;
+}
 
-const { class: className, ...rest } = Astro.props;
+const { class: className, inCard, ...rest } = Astro.props;
+
+let cls = "";
+
+if (inCard) {
+    cls += "bg-bg-input";
+} else {
+    cls += "bg-bg-card";
+}
 ---
 
 <input
     type="text"
     class={cn(
-        "rounded-md border-neutral-700 border bg-bg-input px-3 py-2 text-neutral-200 placeholder-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:outline-none",
+        "rounded-md border-neutral-700 border px-3 py-2 text-neutral-200 placeholder-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:outline-none",
+        cls,
         className,
     )}
     {...rest}
