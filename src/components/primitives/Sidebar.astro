@@ -1,5 +1,6 @@
 ---
 import { Settings } from "@lucide/astro";
+import SidebarItem from "./SidebarItem.astro";
 ---
 
 <!-- Top bar - always visible, contains toggle and title -->
@@ -68,13 +69,11 @@ import { Settings } from "@lucide/astro";
             <slot name="title" />
         </div>
         <div class="flex w-10 items-center justify-center">
-            <button
-                type="button"
-                class="cursor-pointer rounded-lg p-2 text-gray-600 transition-all hover:bg-gray-100 focus:outline-none"
-                aria-label="Settings"
-            >
-                <Settings class="h-6 w-6" />
-            </button>
+            <a href="/settings">
+                <SidebarItem class="p-3">
+                    <Settings class="h-5 w-5" />
+                </SidebarItem>
+            </a>
         </div>
     </div>
 
