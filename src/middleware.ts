@@ -3,7 +3,9 @@ import { stackFrom } from "./lib/stack-server";
 
 export const onRequest = defineMiddleware(async (context, next) => {
     const timeBefore = Date.now();
-    const user = await stackFrom(context.request).getUser();
+    const user = await stackFrom(context.request).getPartialUser({
+        from: "token",
+    });
 
     console.log("It took:", Date.now() - timeBefore, "ms to get the user");
 

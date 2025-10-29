@@ -8,11 +8,8 @@ import type {
 declare global {
     namespace App {
         interface Locals {
-            user: CurrentServerUser | CurrentInternalServerUser;
-            publicPageUser:
-                | CurrentServerUser
-                | CurrentInternalServerUser
-                | null;
+            user: TokenPartialUser;
+            publicPageUser: TokenPartialUser | null;
         }
     }
 }
