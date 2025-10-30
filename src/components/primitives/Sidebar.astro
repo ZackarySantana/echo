@@ -67,10 +67,18 @@ import SidebarItem from "./SidebarItem.astro";
         class="bg-bg-sidebar border-border-sidebar absolute top-1/2 -right-3 hidden h-12 w-6 -translate-y-1/2 items-center justify-center rounded-r-lg border border-l-0 shadow-lg transition-all hover:w-7 sm:flex"
         aria-label="Collapse sidebar"
     >
-        <ChevronLeft id="collapse-icon" class="h-4 w-4 text-gray-400" />
-        <ChevronRight id="expand-icon" class="hidden h-4 w-4 text-gray-400" />
+        <ChevronLeft class="h-4 w-4 text-gray-400" />
     </button>
 </aside>
+
+<button
+    id="desktop-expand-btn"
+    type="button"
+    class="bg-bg-sidebar border-border-sidebar fixed top-1/2 left-0 hidden h-12 w-6 -translate-y-1/2 items-center justify-center rounded-r-lg border border-l-0 shadow-lg transition-all hover:w-7 sm:flex"
+    aria-label="Expand sidebar"
+>
+    <ChevronRight class="h-4 w-4 text-gray-400" />
+</button>
 
 <div
     id="sidebar-overlay"
@@ -85,8 +93,7 @@ import SidebarItem from "./SidebarItem.astro";
     const hamburgerIcon = document.getElementById("hamburger-icon");
     const closeIcon = document.getElementById("close-icon");
     const desktopCollapseBtn = document.getElementById("desktop-collapse-btn");
-    const collapseIcon = document.getElementById("collapse-icon");
-    const expandIcon = document.getElementById("expand-icon");
+    const desktopExpandBtn = document.getElementById("desktop-expand-btn");
 
     let isDesktopCollapsed = false;
 
@@ -108,17 +115,13 @@ import SidebarItem from "./SidebarItem.astro";
         isDesktopCollapsed = !isDesktopCollapsed;
 
         if (isDesktopCollapsed) {
-            sidebar?.classList.add("sm:-translate-x-64");
+            sidebar?.classList.add("hidden");
             sidebar?.classList.remove("sm:translate-x-0");
-            collapseIcon?.classList.add("hidden");
-            expandIcon?.classList.remove("hidden");
-            desktopCollapseBtn?.classList.add("translate-x-3");
+            desktopExpandBtn?.classList.remove("hidden");
         } else {
-            sidebar?.classList.remove("sm:-translate-x-64");
+            sidebar?.classList.remove("hidden");
             sidebar?.classList.add("sm:translate-x-0");
-            collapseIcon?.classList.remove("hidden");
-            expandIcon?.classList.add("hidden");
-            desktopCollapseBtn?.classList.remove("translate-x-3");
+            desktopExpandBtn?.classList.add("hidden");
         }
     }
 
@@ -131,6 +134,7 @@ import SidebarItem from "./SidebarItem.astro";
     });
 
     desktopCollapseBtn?.addEventListener("click", toggleDesktopSidebar);
+    desktopExpandBtn?.addEventListener("click", toggleDesktopSidebar);
 
     overlay?.addEventListener("click", closeSidebar);
 
