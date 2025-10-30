@@ -1,11 +1,55 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import MainSidebar from "../../components/MainSidebar.astro";
+import { db, projectsTable } from "../../lib/db";
+import { eq } from "drizzle-orm";
+import Text from "../../components/primitives/Text.astro";
 
 const { id } = Astro.params;
+
+const idAsInt = parseInt(id ?? "NAN", 10);
+if (isNaN(idAsInt)) {
+    throw Astro.redirect("/404");
+}
+
+const presentations = await db
+    .select()
+    .from(projectsTable)
+    .where(eq(projectsTable.id, idAsInt))
+    .execute();
+
+if (presentations.length === 0) {
+    throw Astro.redirect("/404");
+}
+
+const presentation = presentations[0];
 ---
 
 <Layout class="flex">
-    <MainSidebar />
-    {id}
+    <MainSidebar wide>
+        <Text type="subheading">{presentation.name}</Text>
+
+        <div>
+            <Text type="tertiary" class="mt-5 font-bold">Slides</Text>
+            <Text type="body">1 of 4</Text>
+        </div>
+    </MainSidebar>
+
+    <!-- The main design is very similar to google slides or microsoft powerpoint
+
+    There are three divisions:
+    1. The left sidebar with the slide thumbnails
+    2. The main slide area
+    3. The right sidebar with the slide properties
+
+    There is no top bar, the controls are located completely in the sidebars.
+
+
+    The left sidebar contains a list of slide thumbnails, each thumbnail is clickable and selects the slide to be displayed in the main area.
+    The main slide area displays the currently selected slide, it should be centered and take up most of the available space.
+    The right sidebar contains properties for the selected slide, such as background color, layout, etc
+
+    The layout should be responsive, on smaller screens the sidebars should be collapsible or hidden.
+    -->
+    <main class="flex w-full"></main>
 </Layout>

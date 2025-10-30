@@ -5,6 +5,18 @@ import Settings from "@lucide/astro/icons/settings";
 import ChevronLeft from "@lucide/astro/icons/chevron-left";
 import ChevronRight from "@lucide/astro/icons/chevron-right";
 import SidebarItem from "./SidebarItem.astro";
+import { cn } from "../../lib/cn";
+
+interface Props {
+    wide?: boolean;
+}
+
+const { wide = false } = Astro.props;
+
+let widthClass = "sm:w-64";
+if (wide) {
+    widthClass = "sm:w-80";
+}
 ---
 
 <!-- Top bar - always visible, contains toggle and title -->
@@ -36,7 +48,10 @@ import SidebarItem from "./SidebarItem.astro";
 <!-- Sidebar content panel - slides in from left on mobile -->
 <aside
     id="sidebar"
-    class="bg-bg-sidebar border-border-sidebar fixed top-14 left-0 z-40 flex h-[calc(100vh-3.5rem)] w-dvw shrink-0 -translate-x-full flex-col border-r transition-transform duration-300 ease-in-out sm:sticky sm:top-0 sm:h-screen sm:w-64 sm:translate-x-0"
+    class={cn(
+        "bg-bg-sidebar border-border-sidebar fixed top-14 left-0 z-40 flex h-[calc(100vh-3.5rem)] w-dvw shrink-0 -translate-x-full flex-col border-r transition-transform duration-300 ease-in-out sm:sticky sm:top-0 sm:h-screen sm:translate-x-0",
+        widthClass,
+    )}
 >
     <!-- Desktop header - only visible on desktop -->
     <div

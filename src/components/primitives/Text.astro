@@ -3,7 +3,7 @@ import { type HTMLAttributes } from "astro/types";
 import { cn } from "../../lib/cn";
 
 interface Props extends HTMLAttributes<"h1" | "h2"> {
-    type: "heading" | "subheading" | "body" | "caption";
+    type: "heading" | "subheading" | "tertiary" | "body" | "caption";
 }
 
 const { type, class: className, ...rest } = Astro.props;
@@ -22,5 +22,21 @@ const { type, class: className, ...rest } = Astro.props;
         <h2 class={cn("text-xl font-semibold", className)} {...rest}>
             <slot />
         </h2>
+    )
+}
+
+{
+    type === "tertiary" && (
+        <p class={cn("text-md font-medium", className)} {...rest}>
+            <slot />
+        </p>
+    )
+}
+
+{
+    type === "body" && (
+        <p class={cn("text-base", className)} {...rest}>
+            <slot />
+        </p>
     )
 }
