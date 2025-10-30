@@ -5,6 +5,20 @@ import LinkButton from "../components/primitives/LinkButton.astro";
 import TextInput from "../components/primitives/TextInput.astro";
 import MainSidebar from "../components/MainSidebar.astro";
 import ArrowRight from "@lucide/astro/icons/arrow-right";
+
+import { eq } from "drizzle-orm";
+
+import { db, projectsTable } from "../lib/db.ts";
+import { Presentation } from "@lucide/astro";
+
+const { user } = Astro.locals;
+
+// Get all projects for the signed in user
+
+const projects = await db
+    .select()
+    .from(projectsTable)
+    .where(eq(projectsTable.ownerId, user.id as string));
 ---
 
 <div class="flex">
@@ -78,8 +92,22 @@ import ArrowRight from "@lucide/astro/icons/arrow-right";
         <div
             class="flex w-full flex-col gap-3 pt-5 sm:grid sm:grid-cols-3 sm:flex-row sm:gap-5"
         >
-            <PresentationCard id="testing" title="My first presentation" />
-            <PresentationCard id="testing2" title="Solid" />
+            {
+                projects
+                    .sort(
+                        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+                    )
+                    .slice(0, 2)
+                    .map((project) => (
+                        <PresentationCard
+                            id={project.id.toString()}
+                            title={project.name}
+                            subtitle={`Updated ${project.updatedAt.toLocaleTimeString()} ${project.updatedAt.toLocaleDateString()}`}
+                            image={project.imageLink ?? undefined}
+                        />
+                    ))
+            }
+
             <PresentationCard skeleton />
         </div>
         <a

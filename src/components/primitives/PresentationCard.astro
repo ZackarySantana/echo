@@ -4,6 +4,7 @@ import CirclePlus from "@lucide/astro/icons/circle-plus";
 
 interface Props {
     id?: string;
+    updatedAt?: Date;
     title?: string;
     subtitle?: string;
     image?: string;
@@ -46,10 +47,15 @@ if (id) {
                 ) : (
                     <div class="h-2/3 bg-linear-to-br from-blue-400 to-blue-700" />
                 )}
-                <div class="flex flex-1 items-center px-6">
+                <div class="flex flex-1 flex-col justify-center px-6">
                     <h3 class="text-sm font-semibold text-white">
                         {title || "Untitled Presentation"}
                     </h3>
+                    {subtitle && (
+                        <p class="mt-0.5 text-sm text-gray-400 italic">
+                            {subtitle}
+                        </p>
+                    )}
                 </div>
             </>
         )
@@ -77,7 +83,11 @@ if (id) {
         <h3 class="truncate text-base font-semibold text-white">
             {title || "Untitled Presentation"}
         </h3>
-        {subtitle && <p class="text-sm text-gray-400">{subtitle}</p>}
+        {
+            subtitle && (
+                <p class="mt-0.5 text-sm text-gray-400 italic">{subtitle}</p>
+            )
+        }
     </div>
     <div class="shrink-0">
         <Play class="h-6 w-6 text-gray-400" />
