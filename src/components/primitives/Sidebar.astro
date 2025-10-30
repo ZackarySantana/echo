@@ -74,10 +74,10 @@ import SidebarItem from "./SidebarItem.astro";
 <button
     id="desktop-expand-btn"
     type="button"
-    class="bg-bg-sidebar border-border-sidebar fixed top-1/2 left-0 hidden h-12 w-6 -translate-y-1/2 items-center justify-center rounded-r-lg border border-l-0 shadow-lg transition-all hover:w-7 sm:flex"
+    class="bg-bg-sidebar border-border-sidebar fixed top-1/2 left-0 z-50 hidden h-12 w-6 -translate-y-1/2 items-center justify-center rounded-r-lg border border-l-0 shadow-lg transition-all hover:w-7"
     aria-label="Expand sidebar"
 >
-    <ChevronRight class="h-4 w-4 text-gray-400" />
+    <ChevronRight class="ml-1 h-4 w-4 text-gray-400" />
 </button>
 
 <div
@@ -95,7 +95,17 @@ import SidebarItem from "./SidebarItem.astro";
     const desktopCollapseBtn = document.getElementById("desktop-collapse-btn");
     const desktopExpandBtn = document.getElementById("desktop-expand-btn");
 
-    let isDesktopCollapsed = false;
+    const STORAGE_KEY = "sidebar-collapsed";
+
+    // Load saved state on page load
+    let isDesktopCollapsed = localStorage.getItem(STORAGE_KEY) === "true";
+
+    // Apply initial state
+    if (isDesktopCollapsed) {
+        sidebar?.classList.add("hidden");
+        sidebar?.classList.remove("sm:translate-x-0");
+        desktopExpandBtn?.classList.remove("hidden");
+    }
 
     function openSidebar() {
         sidebar?.classList.remove("-translate-x-full");
@@ -113,6 +123,9 @@ import SidebarItem from "./SidebarItem.astro";
 
     function toggleDesktopSidebar() {
         isDesktopCollapsed = !isDesktopCollapsed;
+
+        // Save state to localStorage
+        localStorage.setItem(STORAGE_KEY, isDesktopCollapsed.toString());
 
         if (isDesktopCollapsed) {
             sidebar?.classList.add("hidden");
