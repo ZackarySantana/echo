@@ -3,7 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import MainSidebar from "../../components/MainSidebar.astro";
 import { db, projectsTable } from "../../lib/db";
 import { eq } from "drizzle-orm";
-import Text from "../../components/primitives/Text.astro";
+import { PresentationSidebar } from "../../components/solid/PresentationSidebar";
 
 const { id } = Astro.params;
 
@@ -27,12 +27,10 @@ const presentation = presentations[0];
 
 <Layout class="flex">
     <MainSidebar wide>
-        <Text type="subheading">{presentation.name}</Text>
-
-        <div>
-            <Text type="tertiary" class="mt-5 font-bold">Slides</Text>
-            <Text type="body">1 of 4</Text>
-        </div>
+        <PresentationSidebar
+            presentation={presentation}
+            client:only="solid-js"
+        />
     </MainSidebar>
 
     <!-- The main design is very similar to google slides or microsoft powerpoint
