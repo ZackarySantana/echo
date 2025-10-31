@@ -1,12 +1,12 @@
 import type { Project } from "../../lib/db";
 import { createQuery } from "./primitives/createQuery";
-import { createShared } from "./primitives/createShared";
+import { createShared, PRESENTATION } from "./primitives/createShared";
 
 export function PresentationSidebar(props: { presentation: Project }) {
     const slide = createQuery("slide", "1");
 
     const [presentation] = createShared<Project>(
-        "presentation",
+        PRESENTATION,
         props.presentation,
     );
 

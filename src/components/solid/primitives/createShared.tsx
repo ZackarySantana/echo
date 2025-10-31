@@ -1,11 +1,20 @@
 import { createRoot, createSignal, type Accessor, type Setter } from "solid-js";
 
+export const PRESENTATION = "presentation";
+
 type Refresh = () => Promise<void>;
+
+const refetchForKeys: Record<string, (data: any) => string | undefined> = {
+    [PRESENTATION]: (data) => {
+        if (!data) return;
+
+        return `/api/presentation/${data.id}`;
+    },
+};
 
 export function createShared<T = any>(
     key: string,
     initial?: T,
-    refetchPath?: string,
 ): [Accessor<T | null>, Setter<T | null>, Refresh] {
     const w = window as any;
 
@@ -16,9 +25,12 @@ export function createShared<T = any>(
             });
 
             let refresh: Refresh = async () => {};
-            if (refetchPath) {
+            if (refetchForKeys[key]) {
                 refresh = async () => {
-                    const fresh = await (await fetch(refetchPath)).json();
+                    const path = refetchForKeys[key](data());
+                    if (!path) return;
+
+                    const fresh = await (await fetch(path)).json();
                     setData(fresh);
                 };
             }
