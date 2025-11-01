@@ -1,0 +1,14 @@
+---
+import { setChatGPTAPIKey } from "../../../lib/db";
+
+const key = Astro.url.searchParams.get("key");
+const { user } = Astro.locals;
+
+if (!key) {
+    return Astro.redirect("/404");
+}
+
+await setChatGPTAPIKey(user.id, key);
+
+return Astro.redirect("/settings");
+---

@@ -1,0 +1,9 @@
+---
+import { setChatGPTAPIKey } from "../../../lib/db";
+
+const user = Astro.locals.user;
+
+await setChatGPTAPIKey(user.id, null);
+
+return Astro.redirect("/settings");
+---

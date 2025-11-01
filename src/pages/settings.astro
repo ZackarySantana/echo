@@ -4,6 +4,9 @@ import Text from "../components/primitives/Text.astro";
 import MainSidebar from "../components/MainSidebar.astro";
 import LinkButton from "../components/primitives/LinkButton.astro";
 import { getOptionalUser } from "../lib/db";
+import TextInput from "../components/primitives/TextInput.astro";
+import ExternalLink from "@lucide/astro/icons/external-link";
+import Link2Off from "@lucide/astro/icons/link-2-off";
 
 const { user } = Astro.locals;
 
@@ -14,6 +17,7 @@ if (false) {
 }
 
 let hasOpenRouterKey = false;
+let hasChatGPTKey = false;
 
 const dbUserResp = await getOptionalUser(user.id);
 if (dbUserResp) {
@@ -21,8 +25,8 @@ if (dbUserResp) {
     if (err) {
         return err;
     }
-    hasOpenRouterKey =
-        user.openRouterAPIKey !== null && user.openRouterAPIKey !== "";
+    hasOpenRouterKey = user.openRouterAPIKey !== null;
+    hasChatGPTKey = user.chatGPTAPIKey !== null;
 }
 ---
 
@@ -41,15 +45,20 @@ if (dbUserResp) {
                 <Text type="subheading">OpenRouter</Text>
                 {
                     !hasOpenRouterKey ? (
-                        <LinkButton href={redirect} class="w-fit">
+                        <LinkButton
+                            href={redirect}
+                            class="flex w-fit items-center justify-center gap-2"
+                        >
                             Connect
+                            <ExternalLink class="h-5 w-5" />
                         </LinkButton>
                     ) : (
                         <LinkButton
                             href={"/oauth/openrouter/delete"}
-                            class="w-fit"
+                            class="flex w-fit items-center justify-center gap-2"
                         >
                             Disconnect
+                            <Link2Off class="h-5 w-5" />
                         </LinkButton>
                     )
                 }
@@ -57,13 +66,37 @@ if (dbUserResp) {
             <div class="flex flex-col gap-2">
                 <Text type="subheading">ChatGPT</Text>
                 {
-                    !hasOpenRouterKey ? (
-                        <LinkButton href={redirect} class="w-fit">
-                            Connect
-                        </LinkButton>
+                    !hasChatGPTKey ? (
+                        <div class="flex items-center gap-2">
+                            <TextInput
+                                placeholder="Enter ChatGPT API key"
+                                id="chat-gptapi-key"
+                            />
+                            <LinkButton class="w-fit" id="chatgpt-button">
+                                Save
+                            </LinkButton>
+                            <script>
+                                const input = document.getElementById(
+                                    "chat-gptapi-key",
+                                )! as HTMLInputElement;
+                                const button = document.getElementById(
+                                    "chatgpt-button",
+                                )! as HTMLAnchorElement;
+
+                                input.addEventListener("input", () => {
+                                    const key = input.value.trim();
+                                    button.href = key
+                                        ? `/oauth/chatgpt/set?key=${encodeURIComponent(
+                                              key,
+                                          )}`
+                                        : "#";
+                                });
+                               
+                            </script>
+                        </div>
                     ) : (
                         <LinkButton
-                            href={"/oauth/openrouter/delete"}
+                            href={"/oauth/chatgpt/delete"}
                             class="w-fit"
                         >
                             Disconnect

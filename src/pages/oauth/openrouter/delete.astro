@@ -3,7 +3,7 @@ import { setOpenRouterAPIKey } from "../../../lib/db";
 
 const user = Astro.locals.user;
 
-await setOpenRouterAPIKey(user.id, "");
+await setOpenRouterAPIKey(user.id, null);
 
 return Astro.redirect("/settings");
 ---
