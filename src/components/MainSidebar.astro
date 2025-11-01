@@ -12,19 +12,24 @@ interface Props {
 const { wide = false } = Astro.props;
 ---
 
-<Sidebar {wide}>
-    <div
-        slot="title"
-        class="flex w-full items-center justify-center gap-2 sm:justify-start"
-    >
-        <Logo size="medium" />
-    </div>
-    <slot />
-    <Logout slot="footer" class="w-full">
-        <SidebarItem>
-            <LogOut class="h-5 w-5 shrink-0" />
+<div class="flex w-full">
+    <Sidebar {wide}>
+        <div
+            slot="title"
+            class="flex w-full items-center justify-center gap-2 sm:justify-start"
+        >
+            <Logo size="medium" />
+        </div>
+        <slot name="sidebar" />
+        <Logout slot="footer" class="w-full">
+            <SidebarItem>
+                <LogOut class="h-5 w-5 shrink-0" />
 
-            <span>Sign Out</span>
-        </SidebarItem>
-    </Logout>
-</Sidebar>
+                <span>Sign Out</span>
+            </SidebarItem>
+        </Logout>
+    </Sidebar>
+    <div class="w-full pt-18 sm:pt-6">
+        <slot />
+    </div>
+</div>

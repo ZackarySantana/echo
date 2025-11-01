@@ -35,34 +35,34 @@ if (!dbUser.openRouterAPIKey && !dbUser.chatGPTAPIKey) {
 ---
 
 <Layout class="flex">
-    <MainSidebar />
+    <MainSidebar>
+        <main class="flex w-full flex-col gap-4 px-8">
+            <Text type="heading" class="mt-4">Create Presentation</Text>
 
-    <main class="flex w-full flex-col gap-4 p-8">
-        <Text type="heading" class="mt-4">Create Presentation</Text>
+            <TextArea
+                placeholder="Enter presentation topic..."
+                class="mt-2"
+                id="presentation-input"
+            />
 
-        <TextArea
-            placeholder="Enter presentation topic..."
-            class="mt-2"
-            id="presentation-input"
-        />
+            <LinkButton class="w-fit" id="generate-presentation">
+                Generate
+            </LinkButton>
 
-        <LinkButton class="w-fit" id="generate-presentation">
-            Generate
-        </LinkButton>
+            <script>
+                const input = document.getElementById(
+                    "presentation-input",
+                ) as HTMLTextAreaElement;
+                const button = document.getElementById(
+                    "generate-presentation",
+                ) as HTMLAnchorElement;
 
-        <script>
-            const input = document.getElementById(
-                "presentation-input",
-            ) as HTMLTextAreaElement;
-            const button = document.getElementById(
-                "generate-presentation",
-            ) as HTMLAnchorElement;
-
-            input?.addEventListener("input", () => {
-                button.href = `/presentation-ai?topic=${encodeURIComponent(
-                    input.value,
-                )}`;
-            });
-        </script>
-    </main>
+                input?.addEventListener("input", () => {
+                    button.href = `/presentation-ai?topic=${encodeURIComponent(
+                        input.value,
+                    )}`;
+                });
+            </script>
+        </main>
+    </MainSidebar>
 </Layout>

@@ -32,85 +32,92 @@ if (dbUserResp) {
 ---
 
 <Layout class="flex">
-    <MainSidebar />
+    <MainSidebar>
+        <main class="flex w-full flex-col px-8">
+            <Text type="heading" class="mt-4">Settings Page</Text>
+            <Text type="body" class="mt-2">
+                Set various preferences for your account and application.
+            </Text>
 
-    <main class="flex w-full flex-col p-8">
-        <Text type="heading" class="mt-4">Settings Page</Text>
-        <Text type="body" class="mt-2">
-            Set various preferences for your account and application.
-        </Text>
+            {
+                error && (
+                    <div class="mt-4 max-w-full rounded-md bg-red-600/10 p-4 wrap-break-word text-red-400">
+                        {error}
+                    </div>
+                )
+            }
 
-        {error && (
-            <div class="mt-4 rounded-md bg-red-600/10 p-4 text-red-400">
-                {error}
-            </div>
-        )}
-
-        <div class="mt-10 flex flex-col gap-6">
-            <Text type="heading">Integrations</Text>
-            <div class="flex flex-col gap-2">
-                <Text type="subheading">OpenRouter</Text>
-                {
-                    !hasOpenRouterKey ? (
-                        <LinkButton
-                            href={redirect}
-                            class="flex w-fit items-center justify-center gap-2"
-                        >
-                            Connect
-                            <ExternalLink class="h-5 w-5" />
-                        </LinkButton>
-                    ) : (
-                        <LinkButton
-                            href={"/oauth/openrouter/delete"}
-                            class="flex w-fit items-center justify-center gap-2"
-                        >
-                            Disconnect
-                            <Link2Off class="h-5 w-5" />
-                        </LinkButton>
-                    )
-                }
-            </div>
-            <div class="flex flex-col gap-2">
-                <Text type="subheading">ChatGPT</Text>
-                {
-                    !hasChatGPTKey ? (
-                        <div class="flex items-center gap-2">
-                            <TextInput
-                                placeholder="Enter ChatGPT API key"
-                                id="chat-gptapi-key"
-                            />
-                            <LinkButton class="w-fit" id="chatgpt-button">
-                                Save
+            <div class="mt-10 flex flex-col gap-6">
+                <Text type="heading">Integrations</Text>
+                <div class="flex flex-col gap-2">
+                    <Text type="subheading">OpenRouter</Text>
+                    {
+                        !hasOpenRouterKey ? (
+                            <LinkButton
+                                href={redirect}
+                                class="flex items-center justify-center gap-2 sm:w-fit"
+                            >
+                                Connect
+                                <ExternalLink class="h-5 w-5" />
                             </LinkButton>
-                            <script>
-                                const input = document.getElementById(
-                                    "chat-gptapi-key",
-                                )! as HTMLInputElement;
-                                const button = document.getElementById(
-                                    "chatgpt-button",
-                                )! as HTMLAnchorElement;
+                        ) : (
+                            <LinkButton
+                                href={"/oauth/openrouter/delete"}
+                                class="flex items-center justify-center gap-2 sm:w-fit"
+                            >
+                                Disconnect
+                                <Link2Off class="h-5 w-5" />
+                            </LinkButton>
+                        )
+                    }
+                </div>
+                <div class="flex flex-col gap-2">
+                    <Text type="subheading">ChatGPT</Text>
 
-                                input.addEventListener("input", () => {
-                                    const key = input.value.trim();
-                                    button.href = key
-                                        ? `/oauth/chatgpt/set?key=${encodeURIComponent(
-                                              key,
-                                          )}`
-                                        : "#";
-                                });
-                               
-                            </script>
-                        </div>
-                    ) : (
-                        <LinkButton
-                            href={"/oauth/chatgpt/delete"}
-                            class="w-fit"
-                        >
-                            Disconnect
-                        </LinkButton>
-                    )
-                }
+                    {
+                        !hasChatGPTKey && (
+                            <div class="flex flex-col justify-center gap-2 sm:flex-row sm:items-center sm:justify-start">
+                                <TextInput
+                                    placeholder="Enter ChatGPT API key"
+                                    id="chat-gptapi-key"
+                                />
+                                <LinkButton
+                                    class="sm:w-fit"
+                                    id="chatgpt-button"
+                                    href="/oauth/chatgpt/delete"
+                                >
+                                    Save
+                                </LinkButton>
+                            </div>
+                        )
+                    }
+                    {
+                        hasChatGPTKey && (
+                            <LinkButton
+                                href="/oauth/chatgpt/delete"
+                                class="sm:w-fit"
+                            >
+                                Disconnect
+                            </LinkButton>
+                        )
+                    }
+
+                    <script>
+                        const input = document.getElementById(
+                            "chat-gptapi-key",
+                        )! as HTMLInputElement;
+                        const button = document.getElementById(
+                            "chatgpt-button",
+                        )! as HTMLAnchorElement;
+
+                        input?.addEventListener("input", () => {
+                            button.href = `/oauth/chatgpt/set?key=${encodeURIComponent(
+                                input.value.trim(),
+                            )}`;
+                        });
+                    </script>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </MainSidebar>
 </Layout>

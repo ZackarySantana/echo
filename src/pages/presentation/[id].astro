@@ -18,24 +18,25 @@ if (err) {
         <PresentationSidebar
             presentation={presentation}
             client:only="solid-js"
+            slot="sidebar"
         />
+
+        <!-- The main design is very similar to google slides or microsoft powerpoint
+
+        There are three divisions:
+        1. The left sidebar with the slide thumbnails
+        2. The main slide area
+        3. The right sidebar with the slide properties
+
+        There is no top bar, the controls are located completely in the sidebars.
+
+
+        The left sidebar contains a list of slide thumbnails, each thumbnail is clickable and selects the slide to be displayed in the main area.
+        The main slide area displays the currently selected slide, it should be centered and take up most of the available space.
+        The right sidebar contains properties for the selected slide, such as background color, layout, etc
+
+        The layout should be responsive, on smaller screens the sidebars should be collapsible or hidden.
+        -->
+        <main class="flex w-full"></main>
     </MainSidebar>
-
-    <!-- The main design is very similar to google slides or microsoft powerpoint
-
-    There are three divisions:
-    1. The left sidebar with the slide thumbnails
-    2. The main slide area
-    3. The right sidebar with the slide properties
-
-    There is no top bar, the controls are located completely in the sidebars.
-
-
-    The left sidebar contains a list of slide thumbnails, each thumbnail is clickable and selects the slide to be displayed in the main area.
-    The main slide area displays the currently selected slide, it should be centered and take up most of the available space.
-    The right sidebar contains properties for the selected slide, such as background color, layout, etc
-
-    The layout should be responsive, on smaller screens the sidebars should be collapsible or hidden.
-    -->
-    <main class="flex w-full"></main>
 </Layout>
