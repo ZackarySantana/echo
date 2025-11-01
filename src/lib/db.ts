@@ -65,7 +65,7 @@ export async function getOptionalUser(
 
 export async function setOpenRouterAPIKey(
     userId: string,
-    apiKey: string,
+    apiKey: string | null,
 ): Promise<void> {
     await db
         .insert(usersTable)
@@ -73,6 +73,19 @@ export async function setOpenRouterAPIKey(
         .onConflictDoUpdate({
             target: usersTable.id,
             set: { openRouterAPIKey: apiKey },
+        });
+}
+
+export async function setChatGPTAPIKey(
+    userId: string,
+    apiKey: string | null,
+): Promise<void> {
+    await db
+        .insert(usersTable)
+        .values({ id: userId, chatGPTAPIKey: apiKey })
+        .onConflictDoUpdate({
+            target: usersTable.id,
+            set: { chatGPTAPIKey: apiKey },
         });
 }
 
