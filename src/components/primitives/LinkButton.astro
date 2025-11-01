@@ -10,6 +10,22 @@ interface Props extends HTMLAttributes<"a"> {
 const { primary, class: className, ...rest } = Astro.props;
 ---
 
-<a class={cn(buttonClass(primary ?? false), className)} {...rest}>
+<a
+    class={cn(buttonClass(primary ?? false), className)}
+    data-link="link"
+    {...rest}
+>
     <slot />
 </a>
+
+<script>
+    const links = document.querySelectorAll('[data-link="link"]');
+    links.forEach((link) => {
+        link?.addEventListener("click", (event) => {
+            const link = event.currentTarget as HTMLAnchorElement;
+            link.classList.add("cursor-wait", "opacity-50");
+            link.classList.remove("cursor-pointer");
+            link.setAttribute("aria-disabled", "true");
+        });
+    });
+</script>

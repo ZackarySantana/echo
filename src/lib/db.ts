@@ -45,6 +45,24 @@ export const getPresentationsByUser = async (
     return [presentations, undefined];
 };
 
+export type User = typeof usersTable.$inferSelect;
+
+export async function getOptionalUser(
+    userId: string,
+): Promise<undefined | Or<User, Response>> {
+    const users = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, userId))
+        .execute();
+
+    if (users.length === 0) {
+        return undefined;
+    }
+
+    return [users[0], undefined];
+}
+
 export async function setOpenRouterAPIKey(
     userId: string,
     apiKey: string,

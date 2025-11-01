@@ -21,9 +21,6 @@ import Button from "../components/primitives/Button.astro";
             const button = document.getElementById("googleSignInButton");
 
             button?.addEventListener("click", async () => {
-                button.classList.add("cursor-wait", "opacity-50");
-                button.classList.remove("cursor-pointer");
-                button.setAttribute("aria-disabled", "true");
                 try {
                     await stackClientApp.signInWithOAuth("google");
                 } catch (error) {

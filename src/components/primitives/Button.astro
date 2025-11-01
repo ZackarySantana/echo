@@ -10,6 +10,22 @@ interface Props extends HTMLAttributes<"button"> {
 const { primary, class: className, ...rest } = Astro.props;
 ---
 
-<button class={cn(buttonClass(primary ?? false), className)} {...rest}>
+<button
+    class={cn(buttonClass(primary ?? false), className)}
+    data-button="button"
+    {...rest}
+>
     <slot />
 </button>
+
+<script>
+    const buttons = document.querySelectorAll('[data-button="button"]');
+    buttons.forEach((button) => {
+        button?.addEventListener("click", (event) => {
+            const button = event.currentTarget as HTMLButtonElement;
+            button.classList.add("cursor-wait", "opacity-50");
+            button.classList.remove("cursor-pointer");
+            button.setAttribute("aria-disabled", "true");
+        });
+    });
+</script>
