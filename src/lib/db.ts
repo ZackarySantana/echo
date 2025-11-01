@@ -91,7 +91,7 @@ export async function setChatGPTAPIKey(
 
 type Or<T, U> = [T, undefined] | [undefined, U];
 
-const redirectTo404 = () =>
+export const redirectTo404 = () =>
     new Response(null, {
         status: 302,
         headers: { Location: "/404" },

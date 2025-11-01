@@ -58,7 +58,7 @@ if (!dbUser.openRouterAPIKey && !dbUser.chatGPTAPIKey) {
                 ) as HTMLAnchorElement;
 
                 input?.addEventListener("input", () => {
-                    button.href = `/presentation-ai?topic=${encodeURIComponent(
+                    button.href = `/api/generate-presentation?topic=${encodeURIComponent(
                         input.value,
                     )}`;
                 });
