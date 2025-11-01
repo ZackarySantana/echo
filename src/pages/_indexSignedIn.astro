@@ -8,7 +8,7 @@ import ArrowRight from "@lucide/astro/icons/arrow-right";
 
 import { eq } from "drizzle-orm";
 
-import { db, projectsTable } from "../lib/db.ts";
+import { db, presentationsTable } from "../lib/db.ts";
 import { Presentation } from "@lucide/astro";
 
 const { user } = Astro.locals;
@@ -17,8 +17,8 @@ const { user } = Astro.locals;
 
 const projects = await db
     .select()
-    .from(projectsTable)
-    .where(eq(projectsTable.ownerId, user.id as string));
+    .from(presentationsTable)
+    .where(eq(presentationsTable.ownerId, user.id as string));
 ---
 
 <div class="flex">

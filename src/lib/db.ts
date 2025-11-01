@@ -10,6 +10,8 @@ import {
     varchar,
 } from "drizzle-orm/pg-core";
 
+import { eq } from "drizzle-orm";
+
 neonConfig.poolQueryViaFetch = true;
 neonConfig.webSocketConstructor = ws;
 
@@ -24,7 +26,7 @@ if (!dbURL) {
 const sql = neon(dbURL);
 export const db = drizzle({ client: sql });
 
-export const projectsTable = pgTable("projects", {
+export const presentationsTable = pgTable("presentations", {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     ownerId: varchar({ length: 255 }).notNull(),
     creatorId: varchar({ length: 255 }).notNull(),
@@ -39,4 +41,38 @@ export const projectsTable = pgTable("projects", {
     updatedAt: timestamp().notNull().defaultNow(),
 });
 
-export type Project = typeof projectsTable.$inferSelect;
+export type Presentation = typeof presentationsTable.$inferSelect;
+
+export const getPresentationById = async (
+    user: string,
+    id: string,
+): Promise<[Presentation, undefined] | [undefined, Response]> => {
+    const idAsInt = parseInt(id ?? "NAN", 10);
+    if (isNaN(idAsInt)) {
+        return [undefined, redirectTo404()];
+    }
+
+    const presentations = await db
+        .select()
+        .from(presentationsTable)
+        .where(eq(presentationsTable.id, idAsInt))
+        .execute();
+
+    if (presentations.length === 0) {
+        return [undefined, redirectTo404()];
+    }
+
+    const presentation = presentations[0];
+
+    if (!presentation.public && presentation.ownerId === user) {
+        return [undefined, redirectTo404()];
+    }
+
+    return [presentation, undefined];
+};
+
+const redirectTo404 = () =>
+    new Response(null, {
+        status: 302,
+        headers: { Location: "/404" },
+    });

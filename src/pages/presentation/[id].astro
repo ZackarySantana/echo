@@ -1,28 +1,17 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import MainSidebar from "../../components/MainSidebar.astro";
-import { db, projectsTable } from "../../lib/db";
+import { db, getPresentationById, presentationsTable } from "../../lib/db";
 import { eq } from "drizzle-orm";
 import { PresentationSidebar } from "../../components/solid/PresentationSidebar";
 
 const { id } = Astro.params;
+const { user } = Astro.locals;
 
-const idAsInt = parseInt(id ?? "NAN", 10);
-if (isNaN(idAsInt)) {
-    throw Astro.redirect("/404");
+const [presentation, err] = await getPresentationById(user.id, id ?? "NAN");
+if (err) {
+    throw err;
 }
-
-const presentations = await db
-    .select()
-    .from(projectsTable)
-    .where(eq(projectsTable.id, idAsInt))
-    .execute();
-
-if (presentations.length === 0) {
-    throw Astro.redirect("/404");
-}
-
-const presentation = presentations[0];
 ---
 
 <Layout class="flex">
