@@ -47,4 +47,5 @@ export const usersTable = pgTable("users", {
     id: varchar({ length: 255 }).primaryKey(),
 
     openRouterAPIKey: varchar({ length: 255 }),
+    chatGPTAPIKey: varchar({ length: 255 }),
 });
