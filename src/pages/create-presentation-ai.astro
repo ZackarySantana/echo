@@ -4,8 +4,34 @@ import MainSidebar from "../components/MainSidebar.astro";
 import Text from "../components/primitives/Text.astro";
 import TextArea from "../components/primitives/TextArea.astro";
 import LinkButton from "../components/primitives/LinkButton.astro";
+import { getOptionalUser } from "../lib/db";
 
 const { user } = Astro.locals;
+
+const dbUserResp = await getOptionalUser(user.id);
+
+if (!dbUserResp) {
+    return Astro.redirect(
+        "/settings?error=" +
+            encodeURIComponent(
+                "Please set up your API keys in settings before creating a presentation.",
+            ),
+    );
+}
+
+const [dbUser, err] = dbUserResp;
+if (err) {
+    return err;
+}
+
+if (!dbUser.openRouterAPIKey && !dbUser.chatGPTAPIKey) {
+    return Astro.redirect(
+        "/settings?error=" +
+            encodeURIComponent(
+                "Please set up your API keys in settings before creating a presentation.",
+            ),
+    );
+}
 ---
 
 <Layout class="flex">

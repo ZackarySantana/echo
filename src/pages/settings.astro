@@ -8,6 +8,7 @@ import TextInput from "../components/primitives/TextInput.astro";
 import ExternalLink from "@lucide/astro/icons/external-link";
 import Link2Off from "@lucide/astro/icons/link-2-off";
 
+const error = Astro.url.searchParams.get("error");
 const { user } = Astro.locals;
 
 const redirect = `https://openrouter.ai/auth?callback_url=${Astro.url.origin}/oauth/openrouter/callback`;
@@ -38,6 +39,12 @@ if (dbUserResp) {
         <Text type="body" class="mt-2">
             Set various preferences for your account and application.
         </Text>
+
+        {error && (
+            <div class="mt-4 rounded-md bg-red-600/10 p-4 text-red-400">
+                {error}
+            </div>
+        )}
 
         <div class="mt-10 flex flex-col gap-6">
             <Text type="heading">Integrations</Text>
