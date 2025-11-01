@@ -95,9 +95,10 @@ if (dbUserResp) {
                         hasChatGPTKey && (
                             <LinkButton
                                 href="/oauth/chatgpt/delete"
-                                class="sm:w-fit"
+                                class="flex items-center justify-center gap-2 sm:w-fit"
                             >
                                 Disconnect
+                                <Link2Off class="h-5 w-5" />
                             </LinkButton>
                         )
                     }
