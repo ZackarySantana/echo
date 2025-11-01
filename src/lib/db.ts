@@ -1,52 +1,12 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon, neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
-
-import {
-    boolean,
-    integer,
-    pgTable,
-    timestamp,
-    varchar,
-} from "drizzle-orm/pg-core";
-
-import { eq } from "drizzle-orm";
-
-neonConfig.poolQueryViaFetch = true;
-neonConfig.webSocketConstructor = ws;
-
-// This is for drizzle-kit CLI compatibility.
-let dbURL = process.env.DATABASE_URL ?? "";
-
-// Astro uses Vite under the hood, so env vars are accessed differently.
-if (!dbURL) {
-    dbURL = import.meta.env.DATABASE_URL;
-}
-
-const sql = neon(dbURL);
-export const db = drizzle({ client: sql });
-
-export const presentationsTable = pgTable("presentations", {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    ownerId: varchar({ length: 255 }).notNull(),
-    creatorId: varchar({ length: 255 }).notNull(),
-
-    name: varchar({ length: 255 }).notNull(),
-    imageLink: varchar({ length: 255 }),
-    public: boolean().notNull().default(false),
-
-    likes: integer().notNull().default(0),
-
-    createdAt: timestamp().notNull().defaultNow(),
-    updatedAt: timestamp().notNull().defaultNow(),
-});
+import { eq, and, or } from "drizzle-orm";
+import { presentationsTable, usersTable, db } from "./db_schema";
 
 export type Presentation = typeof presentationsTable.$inferSelect;
 
 export const getPresentationById = async (
     user: string,
     id: string,
-): Promise<[Presentation, undefined] | [undefined, Response]> => {
+): Promise<Or<Presentation, Response>> => {
     const idAsInt = parseInt(id ?? "NAN", 10);
     if (isNaN(idAsInt)) {
         return [undefined, redirectTo404()];
@@ -55,21 +15,50 @@ export const getPresentationById = async (
     const presentations = await db
         .select()
         .from(presentationsTable)
-        .where(eq(presentationsTable.id, idAsInt))
+        .where(
+            and(
+                eq(presentationsTable.id, idAsInt),
+                or(
+                    eq(presentationsTable.public, true),
+                    eq(presentationsTable.ownerId, user),
+                ),
+            ),
+        )
         .execute();
 
     if (presentations.length === 0) {
         return [undefined, redirectTo404()];
     }
 
-    const presentation = presentations[0];
-
-    if (!presentation.public && presentation.ownerId === user) {
-        return [undefined, redirectTo404()];
-    }
-
-    return [presentation, undefined];
+    return [presentations[0], undefined];
 };
+
+export const getPresentationsByUser = async (
+    user: string,
+): Promise<Or<Presentation[], Response>> => {
+    const presentations = await db
+        .select()
+        .from(presentationsTable)
+        .where(eq(presentationsTable.ownerId, user))
+        .execute();
+
+    return [presentations, undefined];
+};
+
+export async function setOpenRouterAPIKey(
+    userId: string,
+    apiKey: string,
+): Promise<void> {
+    await db
+        .insert(usersTable)
+        .values({ id: userId, openRouterAPIKey: apiKey })
+        .onConflictDoUpdate({
+            target: usersTable.id,
+            set: { openRouterAPIKey: apiKey },
+        });
+}
+
+type Or<T, U> = [T, undefined] | [undefined, U];
 
 const redirectTo404 = () =>
     new Response(null, {

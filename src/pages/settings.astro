@@ -1,0 +1,30 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Text from "../components/primitives/Text.astro";
+import MainSidebar from "../components/MainSidebar.astro";
+import LinkButton from "../components/primitives/LinkButton.astro";
+
+const redirect = `https://openrouter.ai/auth?callback_url=${Astro.url.origin}/oauth/openrouter/callback`;
+
+if (false) {
+    // redirect += "&code_challenge=<CODE_CHALLENGE>&code_challenge_method=S256"
+}
+
+console.log();
+---
+
+<Layout class="flex">
+    <MainSidebar />
+
+    <main class="flex w-full flex-col p-8">
+        <Text type="heading" class="mt-4"> Settings Page </Text>
+        <Text type="body" class="mt-2 max-w-md text-center">
+            This is where users can configure their application settings,
+            preferences, and account information.
+        </Text>
+
+        <LinkButton href={redirect}> Connect your OpenRouter </LinkButton>
+
+        <script></script>
+    </main>
+</Layout>

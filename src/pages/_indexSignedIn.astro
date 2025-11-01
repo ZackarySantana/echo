@@ -6,23 +6,19 @@ import TextInput from "../components/primitives/TextInput.astro";
 import MainSidebar from "../components/MainSidebar.astro";
 import ArrowRight from "@lucide/astro/icons/arrow-right";
 
-import { eq } from "drizzle-orm";
-
-import { db, presentationsTable } from "../lib/db.ts";
-import { Presentation } from "@lucide/astro";
+import { getPresentationsByUser } from "../lib/db.ts";
 
 const { user } = Astro.locals;
 
 // Get all projects for the signed in user
-
-const projects = await db
-    .select()
-    .from(presentationsTable)
-    .where(eq(presentationsTable.ownerId, user.id as string));
+const [projects, err] = await getPresentationsByUser(user.id);
+if (err) {
+    return err;
+}
 ---
 
 <div class="flex">
-    <MainSidebar>Some things</MainSidebar>
+    <MainSidebar />
     <main class="flex w-full flex-col px-8 py-5 pt-20 sm:items-center sm:pt-10">
         <Text type="heading" class="text-2xl sm:text-3xl">
             Join a Session

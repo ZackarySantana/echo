@@ -1,0 +1,16 @@
+---
+import { setOpenRouterAPIKey } from "../../../lib/db";
+
+const code = Astro.url.searchParams.get("code");
+const { user } = Astro.locals;
+
+console.log("codejj", code);
+
+if (!code) {
+    return Astro.redirect("/404");
+}
+
+await setOpenRouterAPIKey(user.id, code);
+
+return Astro.redirect("/");
+---
