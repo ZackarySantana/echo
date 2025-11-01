@@ -11,7 +11,7 @@ interface Props {
     skeleton?: boolean;
 }
 const { title, image, subtitle, skeleton = false, id } = Astro.props;
-let href = "/create-presentation";
+let href = "/create-presentation-ai";
 if (id) {
     href = `/presentation/${id}`;
 }
