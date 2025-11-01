@@ -1,5 +1,10 @@
 import type { APIRoute } from "astro";
 import { getOptionalUser, redirectTo404 } from "../../lib/db";
+import { SlideFormatSchema } from "../../lib/slides";
+import { z } from "zod";
+
+const slideSystemContent = `You are an expert presentation creator. You focus on making presentations that are engaging, informative, and visually appealing. Your task is to create a presentation based on the topic provided by the user. The presentation should at least include a title slide, an introduction slide, several content slides, and a conclusion slide (if possible). Each slide should have a clear and concise title, bullet points or short paragraphs for content, and suggestions for relevant images or graphics to enhance the visual appeal of the presentation. You will ALWAYS return a presentation, even if it doesn't meet the exact conditions of this prompt. You should return only a JSON array of slide objects. Do not include anything other than the raw JSON. Do not include any block element tags. Only return a valid JSON array of slide objects, each in the following format:
+${JSON.stringify(z.toJSONSchema(SlideFormatSchema))}`;
 
 // This creates a presentation from the topic given in the search params.
 export const GET: APIRoute = async ({ request, url, locals }) => {
@@ -32,7 +37,15 @@ export const GET: APIRoute = async ({ request, url, locals }) => {
         return redirectTo404();
     }
 
-    return new Response(JSON.stringify({ slides }), {
+    const slidesAsJson = JSON.parse(slides);
+
+    let parsedSlides = z.array(SlideFormatSchema).safeParse(slidesAsJson);
+    if (!parsedSlides.success) {
+        console.error("Slide parsing error:", parsedSlides.error.format());
+        return redirectTo404();
+    }
+
+    return new Response(JSON.stringify({ slides: parsedSlides.data }), {
         status: 200,
         headers: {
             "Content-Type": "application/json",
@@ -51,12 +64,20 @@ const getSlidesFromOpenRouter = async (key: string, topic: string) => {
             model: "openai/gpt-4o",
             messages: [
                 {
+                    role: "system",
+                    content: slideSystemContent,
+                },
+                {
                     role: "user",
                     content: topic,
                 },
             ],
         }),
-    }).then((r) => r.json());
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            return data.choices?.[0]?.message?.content || null;
+        });
 };
 
 const getSlidesFromChatGPT = async (key: string, topic: string) => {
@@ -70,10 +91,18 @@ const getSlidesFromChatGPT = async (key: string, topic: string) => {
             model: "gpt-4o",
             messages: [
                 {
+                    role: "system",
+                    content: slideSystemContent,
+                },
+                {
                     role: "user",
                     content: topic,
                 },
             ],
         }),
-    }).then((r) => r.json());
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            return data.choices?.[0]?.message?.content || null;
+        });
 };
