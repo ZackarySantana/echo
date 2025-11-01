@@ -30,24 +30,47 @@ if (dbUserResp) {
     <MainSidebar />
 
     <main class="flex w-full flex-col p-8">
-        <Text type="heading" class="mt-4"> Settings Page </Text>
+        <Text type="heading" class="mt-4">Settings Page</Text>
         <Text type="body" class="mt-2">
             Set various preferences for your account and application.
         </Text>
 
-        <div class="mt-10">
-            <Text type="subheading" class="mb-2">AI Integrations</Text>
-            {
-                !hasOpenRouterKey ? (
-                    <LinkButton href={redirect} class="w-fit">
-                        Connect to OpenRouter
-                    </LinkButton>
-                ) : (
-                    <LinkButton href={"/oauth/openrouter/delete"} class="w-fit">
-                        Disconnect from OpenRouter
-                    </LinkButton>
-                )
-            }
+        <div class="mt-10 flex flex-col gap-6">
+            <Text type="heading">Integrations</Text>
+            <div class="flex flex-col gap-2">
+                <Text type="subheading">OpenRouter</Text>
+                {
+                    !hasOpenRouterKey ? (
+                        <LinkButton href={redirect} class="w-fit">
+                            Connect
+                        </LinkButton>
+                    ) : (
+                        <LinkButton
+                            href={"/oauth/openrouter/delete"}
+                            class="w-fit"
+                        >
+                            Disconnect
+                        </LinkButton>
+                    )
+                }
+            </div>
+            <div class="flex flex-col gap-2">
+                <Text type="subheading">ChatGPT</Text>
+                {
+                    !hasOpenRouterKey ? (
+                        <LinkButton href={redirect} class="w-fit">
+                            Connect
+                        </LinkButton>
+                    ) : (
+                        <LinkButton
+                            href={"/oauth/openrouter/delete"}
+                            class="w-fit"
+                        >
+                            Disconnect
+                        </LinkButton>
+                    )
+                }
+            </div>
         </div>
     </main>
 </Layout>
