@@ -58,7 +58,8 @@ export const roomsTable = pgTable("rooms", {
     presentationId: integer(), // Link to presentation if this is a presentation room
     currentSlideIndex: integer(), // Current slide index for presentation rooms (1-based)
     votes: json(), // Vote state: { votes: { pollId: { buttonId: count } }, peerVotes: { pollId: { peerId: buttonId } } }
-    signaling: json(), // Signaling state: { peers: string[], signals: { [peerId]: SignalMessage[] }, peerToOwner: { [peerId]: ownerId } }
+    signaling: json(), // Signaling state: { peers: string[], signals: { [peerId]: SignalMessage[] }, peerToOwner: { [peerId]: ownerId } } (deprecated - kept for migration)
+    conversationId: varchar({ length: 255 }), // Vonage conversation ID
     hidden: boolean().notNull().default(false),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),

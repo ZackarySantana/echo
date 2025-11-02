@@ -32,9 +32,9 @@ export function PresentationViewer(props: {
     const slides = useSharedSlides();
     const defaultStyle = getDefaultPresentationStyle();
 
-    // P2P connection state
+    // Vonage connection state
     const [connected, setConnected] = createSignal(false);
-    const [peerCount, setPeerCount] = createSignal(0);
+    const [attendeeCount, setAttendeeCount] = createSignal(0);
     const [isPresenter, setIsPresenter] = createSignal(false);
 
     // Copy button animation state
@@ -45,24 +45,20 @@ export function PresentationViewer(props: {
     const [voteCounts, setVoteCounts] = createSignal<
         Record<string, Record<string, number>>
     >({});
-    // Track which button each peer voted for: peerVotes[pollId][peerId] = buttonId
+    // Track which button each user voted for: peerVotes[pollId][userId] = buttonId
     const [peerVotes, setPeerVotes] = createSignal<
         Record<string, Record<string, string>>
     >({});
 
-    let peerId: string;
-    let dataChannels: Map<string, RTCDataChannel> = new Map();
-    let peerConnections: Map<string, RTCPeerConnection> = new Map();
-    let channelToPeerId: Map<RTCDataChannel, string> = new Map();
-    let signalingInterval: number | null = null;
-    let keepaliveIntervals: Map<string, number> = new Map();
-    let reconnectAttempts: Map<string, number> = new Map();
-    let reconnectTimeouts: Map<string, number> = new Map();
+    let client: any = null;
+    let session: any = null;
+    let conversation: any = null;
+    let conversationId: string = "";
+    let userId: string = "";
+    let memberPollInterval: number | null = null;
 
     // Determine if user is presenter (owner)
     onMount(async () => {
-        peerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
         // Check if current user is the owner
         let ownerId: string | undefined;
         try {
@@ -87,55 +83,89 @@ export function PresentationViewer(props: {
         // Load vote state from database
         await loadVoteState();
 
-        // Register this peer
-        await fetch("/api/signal", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                roomCode: props.room.code,
-                peerId,
-                action: "register",
-                ownerId: ownerId || undefined,
-                roomOwnerId: props.room.ownerId,
-            }),
-        });
-
-        // Immediately discover peers (don't wait for polling)
+        // Initialize Vonage client and join conversation
         try {
-            const peersResponse = await fetch(
-                `/api/signal?roomCode=${props.room.code}&listPeers=true`,
-            );
-            if (peersResponse.ok) {
-                const data = await peersResponse.json();
-                const remotePeers = (data.peers || []).filter(
-                    (p: string) => p !== peerId,
-                );
-                for (const remotePeerId of remotePeers) {
-                    if (!peerConnections.has(remotePeerId)) {
-                        await connectToPeer(remotePeerId);
-                    }
+            // Get JWT token
+            const jwtResponse = await fetch("/api/vonage/jwt");
+            if (!jwtResponse.ok) {
+                throw new Error("Failed to get JWT token");
+            }
+            const { token, userId: vonageUserId } = await jwtResponse.json();
+            userId = vonageUserId;
+
+            // Dynamically import Vonage client SDK (only works in browser)
+            const VonageClient = (await import("@vonage/client-sdk")).VonageClient;
+            
+            // Initialize client
+            client = new VonageClient();
+            session = await client.createSession(token);
+
+            // Join or create conversation
+            const convResponse = await fetch("/api/vonage/conversation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomCode: props.room.code }),
+            });
+            if (!convResponse.ok) {
+                throw new Error("Failed to join conversation");
+            }
+            const { conversationId: convId } = await convResponse.json();
+            conversationId = convId;
+
+            // Explicitly join the conversation to receive events
+            // This is required even though the backend already added us as a member
+            try {
+                const memberId = await client.joinConversation(conversationId);
+                console.log("Joined conversation with member ID:", memberId);
+            } catch (error: any) {
+                // If already joined, that's OK - backend already added us
+                const isAlreadyJoined = 
+                    error.code === "conversation:error:member-already-joined" ||
+                    error.type?.includes("member-already-joined") ||
+                    (error.message && error.message.includes("already")) ||
+                    (error.detail && error.detail.includes("already"));
+                
+                if (isAlreadyJoined) {
+                    console.log("Already a member of conversation (backend added us), continuing...");
+                } else {
+                    console.warn("Warning joining conversation:", error);
+                    // Still continue - we might still be able to receive events
+                }
+            }
+
+            // Get conversation (method is on client, not session)
+            conversation = await client.getConversation(conversationId);
+
+            // Set up event listeners (must be after joining)
+            setupConversationListeners();
+
+            // Update connection status
+            setConnected(true);
+            await updateMemberCount();
+
+            // Start polling for member count updates
+            memberPollInterval = setInterval(async () => {
+                await updateMemberCount();
+            }, 2000) as unknown as number;
+
+            // If presenter, send current slide state
+            if (isPresenter()) {
+                const current = parseInt(slideIndex(), 10);
+                if (current > 0) {
+                    await sendSlideChange(current);
+                }
+                // Send current vote state
+                const currentVotes = voteCounts();
+                const currentPeerVotes = peerVotes();
+                if (Object.keys(currentVotes).length > 0) {
+                    await sendVoteStateSync(currentVotes, currentPeerVotes);
                 }
             }
         } catch (error) {
-            console.error("Initial peer discovery error:", error);
+            console.error("Error initializing Vonage:", error);
         }
 
-        // Start signaling
-        startSignaling();
-
         return () => {
-            if (signalingInterval !== null) {
-                clearInterval(signalingInterval);
-            }
-            fetch("/api/signal", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    roomCode: props.room.code,
-                    peerId,
-                    action: "unregister",
-                }),
-            }).catch(console.error);
             cleanup();
         };
     });
@@ -151,522 +181,196 @@ export function PresentationViewer(props: {
             saveVoteState();
         }
 
-        // Clear all keepalive intervals
-        keepaliveIntervals.forEach((interval) => clearInterval(interval));
-        keepaliveIntervals.clear();
-
-        // Clear all reconnect timeouts
-        reconnectTimeouts.forEach((timeout) => clearTimeout(timeout));
-        reconnectTimeouts.clear();
-
-        reconnectAttempts.clear();
-
-        dataChannels.forEach((channel) => {
-            if (
-                channel.readyState === "open" ||
-                channel.readyState === "connecting"
-            ) {
-                channel.close();
-            }
-        });
-        dataChannels.clear();
-        channelToPeerId.clear();
-        peerConnections.forEach((pc) => pc.close());
-        peerConnections.clear();
-    }
-
-    async function startSignaling() {
-        const pollInterval = 500; // Poll every 500ms for faster discovery
-        signalingInterval = setInterval(async () => {
-            try {
-                // Get list of peers
-                const peersResponse = await fetch(
-                    `/api/signal?roomCode=${props.room.code}&listPeers=true`,
-                );
-                if (peersResponse.ok) {
-                    const data = await peersResponse.json();
-                    const remotePeers = (data.peers || []).filter(
-                        (p: string) => p !== peerId,
-                    );
-
-                    // Connect to new peers
-                    for (const remotePeerId of remotePeers) {
-                        if (!peerConnections.has(remotePeerId)) {
-                            await connectToPeer(remotePeerId);
-                        }
-                    }
-                }
-
-                // Get signals
-                const signalsResponse = await fetch(
-                    `/api/signal?roomCode=${props.room.code}&peerId=${encodeURIComponent(peerId)}`,
-                );
-                if (signalsResponse.ok) {
-                    const data = await signalsResponse.json();
-                    const signals = data.signals || [];
-                    if (signals.length > 0) {
-                        for (const signal of signals) {
-                            await handleSignal(signal);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Signaling error:", error);
-            }
-        }, pollInterval) as unknown as number;
-    }
-
-    async function handleSignal(signal: any) {
-        try {
-            if (signal.from === peerId) return;
-
-            let pc = peerConnections.get(signal.from);
-
-            // Create connection if it doesn't exist
-            if (!pc) {
-                pc = createPeerConnection(signal.from);
-                peerConnections.set(signal.from, pc);
-            }
-
-            if (signal.type === "offer") {
-                // If we already have a connection, restart ICE
-                if (pc.signalingState !== "stable") {
-                    console.log(
-                        `Connection state not stable for ${signal.from}, creating new connection`,
-                    );
-                    cleanupPeerConnection(signal.from);
-                    pc = createPeerConnection(signal.from);
-                    peerConnections.set(signal.from, pc);
-                }
-
-                await pc.setRemoteDescription(
-                    new RTCSessionDescription(signal.data),
-                );
-                const answer = await pc.createAnswer({ iceRestart: false });
-                await pc.setLocalDescription(answer);
-
-                await fetch("/api/signal", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        roomCode: props.room.code,
-                        signal: {
-                            type: "answer",
-                            from: peerId,
-                            to: signal.from,
-                            data: answer,
-                        },
-                    }),
-                });
-            } else if (signal.type === "answer") {
-                // Only set remote description if in the right state
-                if (pc.signalingState === "have-local-offer") {
-                    await pc.setRemoteDescription(
-                        new RTCSessionDescription(signal.data),
-                    );
-                }
-            } else if (signal.type === "ice-candidate") {
-                // Only add candidate if connection is in a valid state
-                if (pc.remoteDescription && pc.signalingState !== "closed") {
-                    try {
-                        await pc.addIceCandidate(
-                            new RTCIceCandidate(signal.data),
-                        );
-                    } catch (e) {
-                        // Candidate might be outdated, ignore error
-                        console.warn(
-                            "Failed to add ICE candidate (likely outdated):",
-                            e,
-                        );
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Error handling signal:", error);
-            // If signal handling fails, try to reconnect
-            if (signal.from) {
-                const existingPc = peerConnections.get(signal.from);
-                if (
-                    existingPc &&
-                    (existingPc.connectionState === "failed" ||
-                        existingPc.connectionState === "closed")
-                ) {
-                    cleanupPeerConnection(signal.from);
-                    attemptReconnect(signal.from);
-                }
-            }
-        }
-    }
-
-    function createPeerConnection(remotePeerId: string): RTCPeerConnection {
-        const pc = new RTCPeerConnection({
-            iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
-                { urls: "stun:stun1.l.google.com:19302" },
-                // Public TURN servers for better NAT traversal
-                {
-                    urls: "turn:openrelay.metered.ca:80",
-                    username: "openrelayproject",
-                    credential: "openrelayproject",
-                },
-                {
-                    urls: "turn:openrelay.metered.ca:443",
-                    username: "openrelayproject",
-                    credential: "openrelayproject",
-                },
-                {
-                    urls: "turn:openrelay.metered.ca:443?transport=tcp",
-                    username: "openrelayproject",
-                    credential: "openrelayproject",
-                },
-            ],
-            iceCandidatePoolSize: 10,
-        });
-
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                sendSignal({
-                    type: "ice-candidate",
-                    from: peerId,
-                    to: remotePeerId,
-                    data: event.candidate,
-                });
-            }
-        };
-
-        pc.ondatachannel = (event) => {
-            const channel = event.channel;
-            channelToPeerId.set(channel, remotePeerId);
-            setupDataChannel(channel, remotePeerId);
-        };
-
-        pc.onconnectionstatechange = () => {
-            const state = pc.connectionState;
-            console.log(
-                `Connection state changed for ${remotePeerId}: ${state}`,
-            );
-
-            if (state === "connected") {
-                // Clear any reconnect attempts on successful connection
-                reconnectAttempts.delete(remotePeerId);
-                const timeout = reconnectTimeouts.get(remotePeerId);
-                if (timeout !== undefined) {
-                    clearTimeout(timeout);
-                    reconnectTimeouts.delete(remotePeerId);
-                }
-                // Start keepalive
-                startKeepalive(remotePeerId);
-                updateConnectionStatus();
-            } else if (state === "disconnected") {
-                // Try to reconnect if disconnected (might be temporary)
-                attemptReconnect(remotePeerId);
-                stopKeepalive(remotePeerId);
-                updateConnectionStatus();
-            } else if (state === "failed" || state === "closed") {
-                // Clean up and try to reconnect for failed connections
-                cleanupPeerConnection(remotePeerId);
-                attemptReconnect(remotePeerId);
-                updateConnectionStatus();
-            } else if (state === "connecting") {
-                // Clear failed state indicators
-                updateConnectionStatus();
-            }
-        };
-
-        const dataChannel = pc.createDataChannel("presentation", {
-            ordered: true,
-        });
-        channelToPeerId.set(dataChannel, remotePeerId);
-        setupDataChannel(dataChannel, remotePeerId);
-
-        return pc;
-    }
-
-    function setupDataChannel(channel: RTCDataChannel, remotePeerId?: string) {
-        channel.onopen = () => {
-            console.log(
-                `Data channel opened for ${remotePeerId || "unknown peer"}`,
-            );
-            updateConnectionStatus();
-
-            // If we're the presenter and a new channel opens, send current slide immediately
-            if (isPresenter()) {
-                const current = parseInt(slideIndex(), 10);
-                if (current > 0) {
-                    channel.send(
-                        JSON.stringify({
-                            type: "slide-change",
-                            slideIndex: current.toString(),
-                        }),
-                    );
-                }
-            }
-
-            // Send current vote state to newly connected peer
-            // Also load from database first to ensure we have the latest state
-            loadVoteState().then(() => {
-                const currentVotes = voteCounts();
-                const currentPeerVotes = peerVotes();
-                if (Object.keys(currentVotes).length > 0) {
-                    channel.send(
-                        JSON.stringify({
-                            type: "vote-state-sync",
-                            votes: currentVotes,
-                            peerVotes: currentPeerVotes,
-                        }),
-                    );
-                }
-            });
-        };
-
-        channel.onmessage = (event) => {
-            try {
-                const message = JSON.parse(event.data);
-
-                // Handle keepalive pings
-                if (message.type === "ping") {
-                    const peerIdForChannel =
-                        remotePeerId || channelToPeerId.get(channel);
-                    if (peerIdForChannel) {
-                        const channelToRespond =
-                            dataChannels.get(peerIdForChannel);
-                        if (
-                            channelToRespond &&
-                            channelToRespond.readyState === "open"
-                        ) {
-                            channelToRespond.send(
-                                JSON.stringify({ type: "pong" }),
-                            );
-                        }
-                    }
-                    return;
-                }
-
-                if (message.type === "pong") {
-                    // Pong received, connection is alive
-                    return;
-                }
-
-                if (message.type === "slide-change") {
-                    // Audience receives updates from presenter
-                    // Presenter can also receive if they reconnect or join from another device
-                    const newIndex =
-                        typeof message.slideIndex === "string"
-                            ? parseInt(message.slideIndex, 10)
-                            : message.slideIndex;
-                    if (!isNaN(newIndex)) {
-                        setSlideIndex(newIndex);
-                    }
-                } else if (message.type === "poll-vote") {
-                    // Handle poll vote
-                    handleIncomingVote(
-                        message.pollId,
-                        message.buttonId,
-                        message.peerId,
-                    );
-                } else if (message.type === "vote-state-sync") {
-                    // Receive full vote state from another peer (usually presenter)
-                    // Merge with existing state rather than replace to avoid losing local votes
-                    if (message.votes && message.peerVotes) {
-                        setVoteCounts(message.votes);
-                        setPeerVotes(message.peerVotes);
-                        scheduleVoteSave();
-                    }
-                }
-            } catch (e) {
-                console.error("Error parsing message:", e);
-            }
-        };
-
-        channel.onerror = (error) => {
-            console.error("Data channel error:", error);
-            const peerIdForChannel =
-                remotePeerId || channelToPeerId.get(channel);
-            if (peerIdForChannel) {
-                stopKeepalive(peerIdForChannel);
-            }
-        };
-
-        channel.onclose = () => {
-            console.log(
-                `Data channel closed for ${remotePeerId || "unknown peer"}`,
-            );
-            const peerIdForChannel =
-                remotePeerId || channelToPeerId.get(channel);
-            if (peerIdForChannel) {
-                stopKeepalive(peerIdForChannel);
-            }
-            updateConnectionStatus();
-        };
-
-        const peerIdForChannel = remotePeerId || channelToPeerId.get(channel);
-        if (peerIdForChannel) {
-            dataChannels.set(peerIdForChannel, channel);
-        }
-    }
-
-    function startKeepalive(remotePeerId: string) {
-        // Clear any existing keepalive
-        stopKeepalive(remotePeerId);
-
-        // Send ping every 10 seconds
-        const interval = setInterval(() => {
-            const channel = dataChannels.get(remotePeerId);
-            if (channel && channel.readyState === "open") {
-                try {
-                    channel.send(JSON.stringify({ type: "ping" }));
-                } catch (e) {
-                    console.error("Error sending keepalive ping:", e);
-                    stopKeepalive(remotePeerId);
-                }
-            } else {
-                stopKeepalive(remotePeerId);
-            }
-        }, 10000) as unknown as number;
-
-        keepaliveIntervals.set(remotePeerId, interval);
-    }
-
-    function stopKeepalive(remotePeerId: string) {
-        const interval = keepaliveIntervals.get(remotePeerId);
-        if (interval !== undefined) {
-            clearInterval(interval);
-            keepaliveIntervals.delete(remotePeerId);
-        }
-    }
-
-    function cleanupPeerConnection(remotePeerId: string) {
-        stopKeepalive(remotePeerId);
-        const pc = peerConnections.get(remotePeerId);
-        if (pc) {
-            pc.close();
-            peerConnections.delete(remotePeerId);
-        }
-        const channel = dataChannels.get(remotePeerId);
-        if (channel) {
-            channelToPeerId.delete(channel);
-            dataChannels.delete(remotePeerId);
-        }
-    }
-
-    function attemptReconnect(remotePeerId: string) {
-        // Clear any existing reconnect timeout
-        const existingTimeout = reconnectTimeouts.get(remotePeerId);
-        if (existingTimeout !== undefined) {
-            clearTimeout(existingTimeout);
+        // Clear member polling
+        if (memberPollInterval !== null) {
+            clearInterval(memberPollInterval);
+            memberPollInterval = null;
         }
 
-        const attempts = reconnectAttempts.get(remotePeerId) || 0;
+        // Leave conversation
+        if (conversation && userId) {
+            fetch("/api/vonage/conversation", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomCode: props.room.code }),
+            }).catch(console.error);
+        }
 
-        // Don't reconnect too many times (max 5 attempts)
-        if (attempts >= 5) {
-            console.log(
-                `Max reconnection attempts reached for ${remotePeerId}`,
-            );
-            reconnectAttempts.delete(remotePeerId);
-            reconnectTimeouts.delete(remotePeerId);
+        setConnected(false);
+        setAttendeeCount(0);
+    }
+
+    function setupConversationListeners() {
+        if (!client || !conversation) {
+            console.warn("Cannot setup conversation listeners - client or conversation missing", { client: !!client, conversation: !!conversation });
             return;
         }
 
-        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-        const delay = Math.min(1000 * Math.pow(2, attempts), 16000);
-        reconnectAttempts.set(remotePeerId, attempts + 1);
+        console.log("Setting up conversation listeners for", isPresenter() ? "presenter" : "attendee", { conversationId });
 
-        console.log(
-            `Attempting to reconnect to ${remotePeerId} in ${delay}ms (attempt ${attempts + 1}/5)`,
-        );
-
-        const timeout = setTimeout(async () => {
-            reconnectTimeouts.delete(remotePeerId);
-
-            // Only reconnect if peer is still registered
-            try {
-                const peersResponse = await fetch(
-                    `/api/signal?roomCode=${props.room.code}&listPeers=true`,
-                );
-                if (peersResponse.ok) {
-                    const data = await peersResponse.json();
-                    const remotePeers = (data.peers || []).filter(
-                        (p: string) => p !== peerId,
-                    );
-
-                    if (
-                        remotePeers.includes(remotePeerId) &&
-                        !peerConnections.has(remotePeerId)
-                    ) {
-                        console.log(`Reconnecting to ${remotePeerId}`);
-                        await connectToPeer(remotePeerId);
-                    } else {
-                        // Peer no longer exists, clean up
-                        reconnectAttempts.delete(remotePeerId);
-                    }
-                }
-            } catch (error) {
-                console.error("Error during reconnection:", error);
-                reconnectAttempts.delete(remotePeerId);
-            }
-        }, delay) as unknown as number;
-
-        reconnectTimeouts.set(remotePeerId, timeout);
-    }
-
-    function updateConnectionStatus() {
-        let connectedCount = 0;
-        dataChannels.forEach((channel) => {
-            if (channel.readyState === "open") {
-                connectedCount++;
-            }
-        });
-        setPeerCount(connectedCount);
-        setConnected(connectedCount > 0);
-    }
-
-    async function connectToPeer(remotePeerId: string) {
-        // If already connecting or connected, don't reconnect
-        const existingPc = peerConnections.get(remotePeerId);
-        if (existingPc) {
-            const state = existingPc.connectionState;
-            if (state === "connected" || state === "connecting") {
+        // Listen for conversation events (custom events, member events, etc.)
+        // This should receive events from ALL members in the conversation
+        client.on("conversationEvent", (event: any) => {
+            console.log("Received conversation event:", event.kind, event.eventType, event);
+            
+            // Check if this event is from the current conversation
+            if (event.conversationId && event.conversationId !== conversationId) {
+                console.log("Ignoring event from different conversation", event.conversationId, "vs", conversationId);
                 return;
             }
-            // If in a failed state, clean it up first
-            cleanupPeerConnection(remotePeerId);
+            
+            switch (event.kind) {
+                case "custom":
+                    // Handle custom event
+                    if (event.eventType === "custom:slide-change" || 
+                        event.eventType === "custom:poll-vote" || 
+                        event.eventType === "custom:vote-state-sync") {
+                        // Custom data is directly in event.body based on the structure we saw
+                        const data = event.body;
+                        if (data && typeof data === 'object') {
+                            console.log("Processing custom event data:", data, "for", isPresenter() ? "presenter" : "attendee");
+                            handleConversationEvent(data);
+                        } else {
+                            console.warn("Custom event data not found or invalid:", event);
+                        }
+                    }
+                    break;
+                case "member:joined":
+                    updateMemberCount();
+                    break;
+                case "member:left":
+                    updateMemberCount();
+                    break;
+                case "text":
+                    // Fallback: handle text messages that might contain JSON
+                    try {
+                        const text = event.body?.text?.text || event.body?.text || event.text;
+                        if (text) {
+                            const data = JSON.parse(text);
+                            handleConversationEvent(data);
+                        }
+                    } catch (e) {
+                        // Not JSON, ignore
+                    }
+                    break;
+            }
+        });
+        
+        // Also try listening on conversation object if it has event listeners
+        if (conversation && typeof conversation.on === 'function') {
+            console.log("Also setting up listener on conversation object");
+            conversation.on("conversationEvent", (event: any) => {
+                console.log("Received event from conversation object:", event);
+            });
         }
+    }
 
-        const shouldOffer = peerId < remotePeerId;
-        const pc = createPeerConnection(remotePeerId);
-        peerConnections.set(remotePeerId, pc);
-
-        if (shouldOffer) {
-            try {
-                const offer = await pc.createOffer({ iceRestart: true });
-                await pc.setLocalDescription(offer);
-                await sendSignal({
-                    type: "offer",
-                    from: peerId,
-                    to: remotePeerId,
-                    data: offer,
-                });
-            } catch (error) {
-                console.error("Error creating offer:", error);
-                cleanupPeerConnection(remotePeerId);
-                attemptReconnect(remotePeerId);
+    async function handleConversationEvent(data: any) {
+        console.log("Handling conversation event:", data);
+        
+        if (data.type === "slide-change") {
+            const newIndex =
+                typeof data.slideIndex === "string"
+                    ? parseInt(data.slideIndex, 10)
+                    : data.slideIndex;
+            if (!isNaN(newIndex) && !isPresenter()) {
+                // Only update if not presenter (presenter controls slides)
+                console.log("Updating slide index to:", newIndex, "for attendee");
+                setSlideIndex(newIndex);
+            }
+        } else if (data.type === "poll-vote") {
+            handleIncomingVote(data.pollId, data.buttonId, data.userId);
+        } else if (data.type === "vote-state-sync") {
+            if (data.votes && data.peerVotes) {
+                setVoteCounts(data.votes);
+                setPeerVotes(data.peerVotes);
+                scheduleVoteSave();
             }
         }
     }
 
-    async function sendSignal(signal: any) {
+    async function updateMemberCount() {
         try {
-            await fetch("/api/signal", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    roomCode: props.room.code,
-                    signal,
-                }),
-            });
+            const response = await fetch(
+                `/api/vonage/conversation?roomCode=${props.room.code}`
+            );
+            if (response.ok) {
+                const { members } = await response.json();
+                const count = members.length > 0 ? members.length - 1 : 0; // Exclude self
+                setAttendeeCount(count);
+            }
         } catch (error) {
-            console.error("Error sending signal:", error);
+            console.error("Error updating member count:", error);
+        }
+    }
+
+    async function sendSlideChange(newIndex: number) {
+        if (!client || !conversationId || !isPresenter()) return;
+
+        const eventData = {
+            type: "slide-change",
+            slideIndex: newIndex.toString(),
+        };
+
+        try {
+            // Send as custom event using client SDK
+            await client.sendCustomEvent(conversationId, "custom:slide-change", eventData);
+        } catch (error) {
+            console.error("Error sending slide change:", error);
+            // Fallback to text message if custom events not supported
+            try {
+                await client.sendMessageTextEvent(conversationId, JSON.stringify(eventData));
+            } catch (e) {
+                console.error("Error sending slide change as text:", e);
+            }
+        }
+    }
+
+    async function sendVoteEvent(pollId: string, buttonId: string) {
+        if (!client || !conversationId) return;
+
+        const eventData = {
+            type: "poll-vote",
+            pollId,
+            buttonId,
+            userId,
+        };
+
+        try {
+            await client.sendCustomEvent(conversationId, "custom:poll-vote", eventData);
+        } catch (error) {
+            console.error("Error sending vote event:", error);
+            // Fallback to text message
+            try {
+                await client.sendMessageTextEvent(conversationId, JSON.stringify(eventData));
+            } catch (e) {
+                console.error("Error sending vote as text:", e);
+            }
+        }
+    }
+
+    async function sendVoteStateSync(
+        votes: Record<string, Record<string, number>>,
+        peerVotes: Record<string, Record<string, string>>
+    ) {
+        if (!client || !conversationId || !isPresenter()) return;
+
+        const eventData = {
+            type: "vote-state-sync",
+            votes,
+            peerVotes,
+        };
+
+        try {
+            await client.sendCustomEvent(conversationId, "custom:vote-state-sync", eventData);
+        } catch (error) {
+            console.error("Error sending vote state sync:", error);
+            // Fallback to text message
+            try {
+                await client.sendMessageTextEvent(conversationId, JSON.stringify(eventData));
+            } catch (e) {
+                console.error("Error sending vote state as text:", e);
+            }
         }
     }
 
@@ -684,17 +388,8 @@ export function PresentationViewer(props: {
             console.error("Failed to save slide to room:", error);
         }
 
-        // Broadcast to all connected peers
-        const message = {
-            type: "slide-change",
-            slideIndex: newIndex.toString(),
-        };
-
-        dataChannels.forEach((channel) => {
-            if (channel.readyState === "open") {
-                channel.send(JSON.stringify(message));
-            }
-        });
+        // Broadcast via Vonage
+        await sendSlideChange(newIndex);
     }
 
     async function handleSlideNavigation(direction: "prev" | "next") {
@@ -721,21 +416,10 @@ export function PresentationViewer(props: {
 
     function handleButtonClick(buttonId: string, pollId: string) {
         // Update local vote state first
-        handleVote(pollId, buttonId, peerId, true);
+        handleVote(pollId, buttonId, userId, true);
 
-        // Send vote to all peers
-        const message = {
-            type: "poll-vote",
-            pollId,
-            buttonId,
-            peerId,
-        };
-
-        dataChannels.forEach((channel) => {
-            if (channel.readyState === "open") {
-                channel.send(JSON.stringify(message));
-            }
-        });
+        // Send vote via Vonage
+        sendVoteEvent(pollId, buttonId);
     }
 
     let saveVotesTimeout: number | null = null;
@@ -787,18 +471,18 @@ export function PresentationViewer(props: {
     function handleVote(
         pollId: string,
         buttonId: string,
-        voterPeerId: string,
+        voterUserId: string,
         isLocalVote: boolean = false,
     ) {
         setVoteCounts((prev) => {
             const newCounts = { ...prev };
             const peerVotesState = peerVotes();
 
-            // Check if this peer already voted for a different button in this poll
-            const existingVote = peerVotesState[pollId]?.[voterPeerId];
+            // Check if this user already voted for a different button in this poll
+            const existingVote = peerVotesState[pollId]?.[voterUserId];
 
             if (existingVote && existingVote !== buttonId) {
-                // Peer changed their vote - decrement old button, increment new button
+                // User changed their vote - decrement old button, increment new button
                 if (!newCounts[pollId]) {
                     newCounts[pollId] = {};
                 }
@@ -828,7 +512,7 @@ export function PresentationViewer(props: {
                 newCounts[pollId][buttonId] =
                     (newCounts[pollId][buttonId] || 0) + 1;
             }
-            // If existingVote === buttonId, peer clicked the same button again - ignore (or implement toggle if desired)
+            // If existingVote === buttonId, user clicked the same button again - ignore
 
             return newCounts;
         });
@@ -839,7 +523,7 @@ export function PresentationViewer(props: {
             if (!newPeerVotes[pollId]) {
                 newPeerVotes[pollId] = {};
             }
-            newPeerVotes[pollId][voterPeerId] = buttonId;
+            newPeerVotes[pollId][voterUserId] = buttonId;
             return newPeerVotes;
         });
 
@@ -850,11 +534,11 @@ export function PresentationViewer(props: {
     function handleIncomingVote(
         pollId: string,
         buttonId: string,
-        voterPeerId: string,
+        voterUserId: string,
     ) {
-        // Only update if this vote is from another peer
-        if (voterPeerId !== peerId) {
-            handleVote(pollId, buttonId, voterPeerId, false);
+        // Only update if this vote is from another user
+        if (voterUserId !== userId) {
+            handleVote(pollId, buttonId, voterUserId, false);
         }
     }
 
@@ -1006,16 +690,14 @@ export function PresentationViewer(props: {
                     </h1>
                     <div class="flex items-center gap-2">
                         <div
-                            class={`h-2 w-2 rounded-full ${connected() ? "animate-pulse bg-green-500" : peerCount() > 0 ? "animate-pulse bg-yellow-500" : "bg-gray-500"}`}
+                            class={`h-2 w-2 rounded-full ${connected() ? "animate-pulse bg-green-500" : "bg-gray-500"}`}
                         ></div>
                         <span class="text-sm text-gray-400">
                             {connected()
-                                ? `${peerCount()} ${peerCount() === 1 ? "peer connected" : "peers connected"}`
-                                : peerCount() > 0
+                                ? `${attendeeCount()} ${attendeeCount() === 1 ? "attendee connected" : "attendees connected"}`
+                                : isPresenter()
                                   ? "Connecting..."
-                                  : isPresenter()
-                                    ? "Waiting for attendees..."
-                                    : "Connecting to presenter..."}
+                                  : "Connecting to presenter..."}
                         </span>
                     </div>
                 </div>
