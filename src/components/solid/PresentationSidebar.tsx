@@ -40,9 +40,6 @@ export function PresentationSidebar(props: { presentation: Presentation }) {
                         onClick={() => setSlide(i() + 1)}
                     >
                         <p class="font-medium text-white">{s.title}</p>
-                        <p class="text-sm text-gray-500">
-                            {s.content.elements.length}
-                        </p>
                     </div>
                 )}
             </For>
