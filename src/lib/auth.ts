@@ -5,5 +5,8 @@ export function localsUser(locals: App.Locals): Or<TokenPartialUser, Response> {
     if (locals.user && locals.user.id) {
         return [locals.user, undefined];
     }
-    return [undefined, redirectTo404()];
+    return [
+        undefined,
+        redirectTo404(undefined, "Looks like you're not logged in."),
+    ];
 }

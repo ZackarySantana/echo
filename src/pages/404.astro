@@ -18,13 +18,12 @@ const warning = Astro.url.searchParams.get("warning");
     }
 
     {
-        warning ||
-            (!error && (
-                <div class="w-full rounded-md bg-yellow-600/10 p-4 wrap-break-word text-yellow-400 sm:w-fit">
-                    {warning && decodeURIComponent(warning)}
-                    {!warning && "Looks like this page doesn't exist."}
-                </div>
-            ))
+        (warning || !error) && (
+            <div class="w-full rounded-md bg-yellow-600/10 p-4 wrap-break-word text-yellow-400 sm:w-fit">
+                {warning && decodeURIComponent(warning)}
+                {!warning && "Looks like this page doesn't exist."}
+            </div>
+        )
     }
     <Text type="subheading">
         Please try again later.

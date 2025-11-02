@@ -10,7 +10,7 @@ export const getPresentationById = async (
 ): Promise<Or<Presentation, Response>> => {
     const idAsInt = parseInt(id ?? "NAN", 10);
     if (isNaN(idAsInt)) {
-        return [undefined, redirectTo404()];
+        return [undefined, redirectTo404("Presentation not found.")];
     }
 
     const presentations = await db
@@ -28,7 +28,7 @@ export const getPresentationById = async (
         .execute();
 
     if (presentations.length === 0) {
-        return [undefined, redirectTo404()];
+        return [undefined, redirectTo404("Presentation not found.")];
     }
 
     return [presentations[0], undefined];
