@@ -46,6 +46,20 @@ export const getPresentationsByUser = async (
     return [presentations, undefined];
 };
 
+export type NewPresentation = typeof presentationsTable.$inferInsert;
+
+export const insertPresentation = async (
+    value: NewPresentation,
+): Promise<Or<Presentation, Response>> => {
+    const [inserted] = await db
+        .insert(presentationsTable)
+        .values(value)
+        .returning()
+        .execute();
+
+    return [inserted, undefined];
+};
+
 export type User = typeof usersTable.$inferSelect;
 
 export async function getOptionalUser(

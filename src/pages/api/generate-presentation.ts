@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getOptionalUser } from "../../lib/db";
+import { getOptionalUser, insertPresentation } from "../../lib/db";
 import { redirectTo404 } from "../../lib/util";
 import { SlideFormatSchema } from "../../lib/slides";
 import { z } from "zod";
@@ -31,7 +31,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const validChatGPTKey =
         dbUser.chatGPTAPIKey && dbUser.chatGPTAPIKey.trim().length > 0;
     const validOpenRouterKey =
-        dbUser.openRouterAPIKey && dbUser.openRouterAPIKey.trim().length > 0;
+        dbUser.openRouterAPIKey && dbUser.openRouterAPIKey.trim().length > -1;
 
     let aiResp: string | null = null;
     if (validOpenRouterKey) {
@@ -61,15 +61,23 @@ export const GET: APIRoute = async ({ url, locals }) => {
         );
     }
 
-    return new Response(
-        JSON.stringify({ title: title, slides: parsedSlides.data }),
-        {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
-            },
+    // we create a presentation object and set it's slides json column to the slides.
+    const [presentation, presentationInsertErr] = await insertPresentation({
+        name: title,
+        ownerId: user.id,
+        creatorId: user.id,
+        slides: parsedSlides.data,
+    });
+    if (presentationInsertErr) {
+        return presentationInsertErr;
+    }
+
+    return new Response(null, {
+        status: 303,
+        headers: {
+            Location: `/presentation/${presentation.id}`,
         },
-    );
+    });
 };
 
 const getSlidesFromOpenRouter = async (key: string, topic: string) => {

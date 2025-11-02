@@ -33,7 +33,6 @@ export const presentationsTable = pgTable("presentations", {
     imageLink: varchar({ length: 255 }),
     public: boolean().notNull().default(false),
 
-    // json column for slides
     slides: json().notNull(),
 
     likes: integer().notNull().default(0),
