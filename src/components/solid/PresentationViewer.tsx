@@ -508,7 +508,7 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
             <div class="flex flex-1 items-center justify-center overflow-auto bg-bg p-4">
                 <Show
                     when={currentSlideData()}
-                    keyed={(slide) => slide.title + slideIndex()}
+                    keyed
                     fallback={
                         <div
                             class="relative overflow-hidden rounded-lg shadow-2xl"
