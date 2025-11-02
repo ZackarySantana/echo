@@ -34,7 +34,6 @@ export const presentationsTable = pgTable("presentations", {
     public: boolean().notNull().default(false),
 
     slides: json().notNull(),
-    slides2: json(),
 
     likes: integer().notNull().default(0),
 

@@ -31,7 +31,6 @@ export function SlideView(props: Props) {
                     <SlideRenderer
                         slide={s}
                         scale={scale()}
-                        showAllElements={true}
                         className="shadow-2xl"
                     />
                 )}

@@ -18,7 +18,6 @@ function SlideThumbnail(props: {
             <SlideRenderer
                 slide={props.slide}
                 scale={thumbnailScale}
-                showAllElements={true}
             />
         </div>
     );
@@ -31,9 +30,10 @@ export function PresentationSidebar(props: { presentation: Presentation }) {
         PRESENTATION,
         props.presentation,
     );
+    
     const slides = () => parseSlides(presentation()?.slides);
 
-    // Helper to get current slide by index (same logic as SlideViewWrapper)
+    // Helper to get current slide by index
     const getSlideByIndex = (index: number): SlideFormat | undefined => {
         const s = slides();
         const idx = index - 1; // Convert 1-based to 0-based
@@ -70,7 +70,7 @@ export function PresentationSidebar(props: { presentation: Presentation }) {
                                         ? "border-blue-500 bg-gray-800"
                                         : "border-gray-700"
                                 }`}
-                                onClick={() => setSlide(slideNum)}
+                                onClick={() => setSlide(slideNum.toString())}
                             >
                                 <SlideThumbnail 
                                     slide={slideData} 

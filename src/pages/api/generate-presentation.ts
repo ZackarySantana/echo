@@ -1,35 +1,107 @@
 import type { APIRoute } from "astro";
 import { getOptionalUser, insertPresentation } from "../../lib/db";
 import { redirectTo404 } from "../../lib/util";
-import { SlideFormat2Schema } from "../../lib/slides2";
+import { SlideFormatSchema } from "../../lib/slides";
 import { z } from "zod";
 import { localsUser } from "../../lib/auth";
+import { db } from "../../lib/db_schema";
 
-const slideSystemContent = `You are an expert presentation creator. You focus on making presentations that are engaging, informative, and visually appealing. Your task is to create a presentation based on the topic provided by the user. 
+const slideSystemContent = `You are an expert presentation creator. You focus on making presentations that are engaging, informative, and visually appealing. Your task is to create a presentation based on the topic provided by the user.
+
+CRITICAL RULES - FOLLOW EXACTLY:
+1. Each slide uses a PRE-DETERMINED FORMAT template that MUST be followed exactly
+2. NO color fields are allowed - do not include backgroundColor or textColor
+3. Images can be added to ANY slide (except title-image format where it's required)
+4. The content structure MUST match the chosen format exactly
+5. Buttons are separate objects in the "buttons" array field - NOT embedded in text
+
+PRE-DETERMINED SLIDE FORMATS:
+1. "title-only" - Just the title, centered. Content: { image?: { description, url?, position, caption? } }
+2. "title-subtitle" - Title and subtitle, both centered. Content: { subtitle (required), image?: { description, url?, position, caption? } }
+3. "title-bullets" - Title and bullet points, left aligned. Content: { bullets: string[] (1-7 items, required), image?: { description, url?, position, caption? } }
+4. "title-paragraph" - Title and paragraph, left aligned. Content: { paragraph: string (required, max 500 chars), image?: { description, url?, position, caption? } }
+5. "title-2columns" - Title and two columns of content. Content: { leftColumn: string (required, max 300 chars), rightColumn: string (required, max 300 chars), image?: { description, url?, position, caption? } }
+6. "title-image" - Title and image, centered. Content: { image: { description, url?, position, caption? } (REQUIRED) }
+7. "comparison" - Comparison layout with left and right sides. Content: { leftTitle, leftItems[] (1-5 items), rightTitle, rightItems[] (1-5 items), image?: { description, url?, position, caption? } }
+
+IMAGE POSITION OPTIONS: "left", "right", "center", "full", "top", "bottom"
+
+POLLS AND BUTTONS (Interactive Features):
+- Polls are elements defined in the "polls" array field (optional, up to 5 polls per slide).
+  
+  Poll Structure:
+  {
+    id: string (required, unique identifier - used by buttons to reference this poll),
+    type?: "accumulator" | "action-trigger" | "choice" | "feedback" (default: "accumulator"),
+    question?: string (optional question text, max 200 chars),
+    action?: { type: PollActionType, metadata?: object } (required for action-trigger type),
+    threshold?: number (required for action-trigger type - number of votes needed),
+    displayOnSlide?: boolean (default: false - whether to display vote count on slide),
+    metadata?: object (optional additional metadata)
+  }
+  
+  Poll Types:
+  1. "accumulator" - Simple vote counter, accumulates and displays total votes
+  2. "action-trigger" - Triggers actions when threshold is met (e.g., reorder/delete slides)
+  3. "choice" - Multiple choice poll with results display
+  4. "feedback" - Collect feedback/reviews (ratings, comments)
+  
+- Buttons are in the "buttons" array field (optional, up to 10 buttons per slide).
+  Each button MUST reference a poll: {
+    text: string (button label, max 50 chars),
+    pollId: string (must match a poll ID),
+    action?: { type: "vote" | "vote-with-value", value?: string | number } (default: {type: "vote"}),
+    metadata?: object (optional, e.g., {option: "yes"})
+  }
+  
+- Multiple buttons can reference the same poll (e.g., Yes/No buttons both reference poll "q1")
+  
+Examples:
+- Simple accumulator poll:
+  polls: [{id: "vote1", type: "accumulator", question: "Do you agree?", displayOnSlide: true}]
+  buttons: [{text: "Yes", pollId: "vote1"}, {text: "No", pollId: "vote1"}]
+
+- Action-trigger poll (skip slide when threshold met):
+  polls: [{
+    id: "skip-poll", 
+    type: "action-trigger", 
+    question: "Skip this section?",
+    threshold: 5,
+    action: { type: "skip-slide" }
+  }]
+  buttons: [{text: "Skip", pollId: "skip-poll"}]
 
 The presentation should include:
-- A title slide (type: "title")
-- An introduction slide (type: "content" or "bullet")
-- Several content slides with bullet points, paragraphs, or images (types: "bullet", "content", "image")
-- A conclusion slide (type: "conclusion")
+- A title slide using "title-only" or "title-subtitle" format
+- Content slides using appropriate formats (mostly "title-bullets" and "title-paragraph")
+- Optionally "title-image" slides when images are the main focus
+- Optionally "comparison" slides for compare/contrast content
+- Optionally "title-2columns" for side-by-side content
+- A conclusion slide using "title-paragraph" or "title-bullets"
 
-Each slide should have a clear and concise title, appropriate content based on the slide type, and relevant visual elements when applicable. Use the slide type field to help structure your presentation logically. Unless other instructions indicate, the average amount of slides will be around 10-15.
-
-You will ALWAYS return a presentation, even if it doesn't meet the exact conditions of this prompt. You will return only a JSON object with two fields: 'title' (the presentation title) and 'slides' (an array of slide objects). Do not include anything other than the raw JSON. Do not include any block element tags. Only return a valid JSON.
+Unless other instructions indicate, create 10-15 slides total. You will ALWAYS return a presentation. Return only a JSON object with two fields: 'title' (the presentation title) and 'slides' (an array of slide objects). Do not include anything other than the raw JSON. Do NOT INCLUDE ANY BLOCK MARKDOWN FORMATTING.
 
 The slide array has objects with the following schema:
-${JSON.stringify(z.toJSONSchema(SlideFormat2Schema))}
+${JSON.stringify(z.toJSONSchema(SlideFormatSchema))}
 
-Important guidelines:
-- Use "title" type for the first slide
-- Use "bullet" type for slides with key points
-- Use "content" type for slides with paragraph-style content
-- Use "image" type when an image is the main focus
-- Use "comparison" type for compare/contrast slides
-- Use "conclusion" type for the final slide
-- Make sure each slide's content matches its type
-- Include appropriate bullet points or paragraphs based on the slide type
-- Suggest relevant images with descriptions when appropriate`;
+FORMAT-SPECIFIC REQUIREMENTS:
+Note: polls? and buttons? are available in ALL formats. Images are optional on all formats except "title-image".
+
+- "title-only": content = { image?, polls?, buttons? }
+- "title-subtitle": content = { subtitle (required), image?, polls?, buttons? }
+- "title-bullets": content = { bullets: string[] (1-7, required), image?, polls?, buttons? }
+- "title-paragraph": content = { paragraph: string (required, max 500), image?, polls?, buttons? }
+- "title-2columns": content = { leftColumn (required, max 300), rightColumn (required, max 300), image?, polls?, buttons? }
+- "title-image": content = { image (required), polls?, buttons? }
+- "comparison": content = { leftTitle, leftItems[] (1-5), rightTitle, rightItems[] (1-5), image?, polls?, buttons? }
+
+IMPORTANT RULES:
+- All buttons must reference a poll ID that exists in the polls array. Multiple buttons can reference the same poll.
+- DO NOT include any color fields (backgroundColor, textColor).
+- Each format has exactly one allowed content structure.
+- Polls are optional (max 5 per slide) with support for interactive voting features.
+- Buttons are optional (max 10 per slide) and must reference a poll ID.
+- Use "accumulator" poll type for simple vote counting, "action-trigger" for slide management features.`;
 
 // This creates a presentation from the topic given in the search params.
 export const GET: APIRoute = async ({ url, locals }) => {
@@ -77,21 +149,19 @@ export const GET: APIRoute = async ({ url, locals }) => {
         );
     }
 
-    let parsedSlides2 = z.array(SlideFormat2Schema).safeParse(slides);
-    if (!parsedSlides2.success) {
+    let parsedSlides = z.array(SlideFormatSchema).safeParse(slides);
+    if (!parsedSlides.success) {
         return redirectTo404(
-            `Failed to generate valid presentation: ${parsedSlides2.error.message}`,
+            `Failed to generate valid presentation: ${parsedSlides.error.message}`,
         );
     }
 
-    // we create a presentation object and set it's slides2 json column to the new slides.
-    // Keep slides empty array to maintain compatibility with existing code
+    // we create a presentation object and set it's slides json column to the new slides.
     const [presentation, presentationInsertErr] = await insertPresentation({
         name: title,
         ownerId: user.id,
         creatorId: user.id,
-        slides: [], // Empty array to maintain compatibility
-        slides2: parsedSlides2.data, // New improved slides format
+        slides: parsedSlides.data,
     });
     if (presentationInsertErr) {
         return presentationInsertErr;
