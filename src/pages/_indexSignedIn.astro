@@ -92,6 +92,7 @@ if (communityErr) {
             </Text>
             <a
                 href="/my-presentation"
+                id="view-all-mobile-link"
                 class="inline-block text-sm text-blue-400 transition-all hover:underline sm:hidden"
             >
                 See all <ArrowRight class="inline-block h-4 w-4" />
@@ -155,120 +156,138 @@ if (communityErr) {
                     document.getElementById("my-presentations");
                 const viewAllButton =
                     document.getElementById("view-all-button");
+                const viewAllMobileLink = document.getElementById(
+                    "view-all-mobile-link",
+                ) as HTMLAnchorElement | null;
                 const searchInput = document.getElementById(
                     "search-my-presentations",
                 ) as HTMLInputElement | null;
 
-                if (!searchInput) {
-                    // Exit early if search input doesn't exist
-                } else {
-                    const isExpanded = () =>
-                        viewAllButton?.dataset.expanded === "true";
-                    let isSearching = false;
+                const isExpanded = () =>
+                    viewAllButton?.dataset.expanded === "true";
+                let isSearching = false;
 
-                    const updateButtonVisibility = () => {
-                        if (!myPresentationsSection || !viewAllButton) return;
+                const updateButtonVisibility = () => {
+                    if (!myPresentationsSection || !viewAllButton) return;
 
-                        const presentations = Array.from(
-                            myPresentationsSection.querySelectorAll(
-                                "[data-presentation-index]",
-                            ),
-                        ).filter(
-                            (p) => !p.classList.contains("hidden"),
-                        ) as HTMLElement[];
+                    const presentations = Array.from(
+                        myPresentationsSection.querySelectorAll(
+                            "[data-presentation-index]",
+                        ),
+                    ).filter(
+                        (p) => !p.classList.contains("hidden"),
+                    ) as HTMLElement[];
 
-                        // Show button if there are more than 2 visible presentations
-                        if (presentations.length > 2) {
-                            viewAllButton.classList.remove("hidden");
-                        } else {
-                            viewAllButton.classList.add("hidden");
-                        }
-                    };
+                    // Show button if there are more than 2 visible presentations
+                    if (presentations.length > 2) {
+                        viewAllButton.classList.remove("hidden");
+                    } else {
+                        viewAllButton.classList.add("hidden");
+                    }
+                };
 
-                    const filterPresentations = (query: string) => {
-                        if (!myPresentationsSection) return;
+                const filterPresentations = (query: string) => {
+                    if (!myPresentationsSection) return;
 
-                        isSearching = query.trim().length > 0;
-                        const searchTerm = query.trim().toLowerCase();
-                        const presentations =
-                            myPresentationsSection.querySelectorAll(
-                                "[data-presentation-index]",
-                            ) as NodeListOf<HTMLElement>;
+                    isSearching = query.trim().length > 0;
+                    const searchTerm = query.trim().toLowerCase();
+                    const presentations =
+                        myPresentationsSection.querySelectorAll(
+                            "[data-presentation-index]",
+                        ) as NodeListOf<HTMLElement>;
 
-                        presentations.forEach((presentation) => {
-                            const title =
-                                presentation.dataset.presentationTitle || "";
-                            const matches = title.includes(searchTerm);
+                    presentations.forEach((presentation) => {
+                        const title =
+                            presentation.dataset.presentationTitle || "";
+                        const matches = title.includes(searchTerm);
 
-                            if (isSearching) {
-                                // When searching, show all matches, hide non-matches
-                                if (matches) {
-                                    presentation.classList.remove("hidden");
-                                } else {
-                                    presentation.classList.add("hidden");
-                                }
+                        if (isSearching) {
+                            // When searching, show all matches, hide non-matches
+                            if (matches) {
+                                presentation.classList.remove("hidden");
                             } else {
-                                // When not searching, restore default view (first 2 visible)
-                                const index = parseInt(
-                                    presentation.dataset.presentationIndex ||
-                                        "0",
-                                );
-                                if (index >= 2) {
-                                    presentation.classList.add("hidden");
-                                } else {
-                                    presentation.classList.remove("hidden");
-                                }
+                                presentation.classList.add("hidden");
                             }
-                        });
-
-                        // Reset button state when searching
-                        if (isSearching && viewAllButton) {
-                            viewAllButton.dataset.expanded = "false";
-                            viewAllButton.textContent = "View all";
+                        } else {
+                            // When not searching, restore default view (first 2 visible)
+                            const index = parseInt(
+                                presentation.dataset.presentationIndex ||
+                                    "0",
+                            );
+                            if (index >= 2) {
+                                presentation.classList.add("hidden");
+                            } else {
+                                presentation.classList.remove("hidden");
+                            }
                         }
+                    });
 
-                        updateButtonVisibility();
-                    };
-
-                    if (myPresentationsSection && viewAllButton) {
-                        updateButtonVisibility();
+                    // Reset button state when searching
+                    if (isSearching && viewAllButton) {
+                        viewAllButton.dataset.expanded = "false";
+                        viewAllButton.textContent = "View all";
                     }
 
-                    // Search functionality
+                    updateButtonVisibility();
+                };
+
+                const toggleViewAll = (e?: Event) => {
+                    if (e) {
+                        e.preventDefault();
+                    }
+                    if (isSearching || !myPresentationsSection) return;
+
+                    const expanded = isExpanded();
+                    const presentations =
+                        myPresentationsSection.querySelectorAll(
+                            "[data-presentation-index]",
+                        );
+
+                    presentations.forEach((presentation, index) => {
+                        if (index >= 2) {
+                            if (expanded) {
+                                presentation.classList.add("hidden");
+                            } else {
+                                presentation.classList.remove("hidden");
+                            }
+                        }
+                    });
+
+                    const newExpanded = !expanded;
+                    if (viewAllButton) {
+                        viewAllButton.dataset.expanded = newExpanded.toString();
+                        viewAllButton.textContent = newExpanded
+                            ? "View less"
+                            : "View all";
+                    }
+                    if (viewAllMobileLink) {
+                        const arrowSvg = viewAllMobileLink.querySelector("svg")?.outerHTML || "";
+                        viewAllMobileLink.innerHTML = newExpanded
+                            ? `See less ${arrowSvg}`
+                            : `See all ${arrowSvg}`;
+                    }
+                };
+
+                if (myPresentationsSection && viewAllButton) {
+                    updateButtonVisibility();
+                }
+
+                // Search functionality (only if search input exists)
+                if (searchInput) {
                     searchInput.addEventListener("input", (e) => {
                         const query = (e.target as HTMLInputElement).value;
                         filterPresentations(query);
                     });
+                }
 
-                    // View all/less button
-                    if (viewAllButton && myPresentationsSection) {
-                        viewAllButton.addEventListener("click", (e) => {
-                            e.preventDefault();
-                            if (isSearching) return; // Disable button when searching
+                // View all/less button (desktop)
+                if (viewAllButton && myPresentationsSection) {
+                    viewAllButton.addEventListener("click", toggleViewAll);
+                }
 
-                            const expanded = isExpanded();
-                            const presentations =
-                                myPresentationsSection.querySelectorAll(
-                                    "[data-presentation-index]",
-                                );
-
-                            presentations.forEach((presentation, index) => {
-                                if (index >= 2) {
-                                    if (expanded) {
-                                        presentation.classList.add("hidden");
-                                    } else {
-                                        presentation.classList.remove("hidden");
-                                    }
-                                }
-                            });
-
-                            viewAllButton.dataset.expanded =
-                                (!expanded).toString();
-                            viewAllButton.textContent = expanded
-                                ? "View all"
-                                : "View less";
-                        });
-                    }
+                // View all link (mobile)
+                if (viewAllMobileLink && myPresentationsSection) {
+                    viewAllMobileLink.addEventListener("click", toggleViewAll);
                 }
             }
         </script>
@@ -277,6 +296,7 @@ if (communityErr) {
             <Text type="heading" class="text-2xl sm:text-3xl">Community</Text>
             <a
                 href="/my-presentation"
+                id="explore-mobile-link"
                 class="inline-block text-sm text-blue-400 transition-all hover:underline sm:hidden"
             >
                 Explore <ArrowRight class="inline-block h-4 w-4" />
@@ -335,119 +355,139 @@ if (communityErr) {
                 const exploreButton = document.getElementById(
                     "explore-more-button",
                 );
+                const exploreMobileLink = document.getElementById(
+                    "explore-mobile-link",
+                ) as HTMLAnchorElement | null;
                 const searchInput = document.getElementById(
                     "search-community-presentations",
                 ) as HTMLInputElement | null;
 
-                if (!searchInput) {
-                    // Exit early if search input doesn't exist
-                } else {
-                    const isExpanded = () =>
-                        exploreButton?.dataset.expanded === "true";
-                    let isSearching = false;
+                const isExpanded = () =>
+                    exploreButton?.dataset.expanded === "true";
+                let isSearching = false;
 
-                    const updateButtonVisibility = () => {
-                        if (!communitySection || !exploreButton) return;
+                const updateButtonVisibility = () => {
+                    if (!communitySection || !exploreButton) return;
 
-                        const presentations = Array.from(
-                            communitySection.querySelectorAll(
-                                "[data-presentation-index]",
-                            ),
-                        ).filter(
-                            (p) => !p.classList.contains("hidden"),
-                        ) as HTMLElement[];
-
-                        // Show button if there are more than 3 visible presentations
-                        if (presentations.length > 3) {
-                            exploreButton.classList.remove("hidden");
-                        } else {
-                            exploreButton.classList.add("hidden");
-                        }
-                    };
-
-                    const filterPresentations = (query: string) => {
-                        if (!communitySection) return;
-
-                        isSearching = query.trim().length > 0;
-                        const searchTerm = query.trim().toLowerCase();
-                        const presentations = communitySection.querySelectorAll(
+                    const presentations = Array.from(
+                        communitySection.querySelectorAll(
                             "[data-presentation-index]",
-                        ) as NodeListOf<HTMLElement>;
+                        ),
+                    ).filter(
+                        (p) => !p.classList.contains("hidden"),
+                    ) as HTMLElement[];
 
-                        presentations.forEach((presentation) => {
-                            const title =
-                                presentation.dataset.presentationTitle || "";
-                            const matches = title.includes(searchTerm);
+                    // Show button if there are more than 3 visible presentations
+                    if (presentations.length > 3) {
+                        exploreButton.classList.remove("hidden");
+                    } else {
+                        exploreButton.classList.add("hidden");
+                    }
+                };
 
-                            if (isSearching) {
-                                // When searching, show all matches, hide non-matches
-                                if (matches) {
-                                    presentation.classList.remove("hidden");
-                                } else {
-                                    presentation.classList.add("hidden");
-                                }
+                const filterPresentations = (query: string) => {
+                    if (!communitySection) return;
+
+                    isSearching = query.trim().length > 0;
+                    const searchTerm = query.trim().toLowerCase();
+                    const presentations = communitySection.querySelectorAll(
+                        "[data-presentation-index]",
+                    ) as NodeListOf<HTMLElement>;
+
+                    presentations.forEach((presentation) => {
+                        const title =
+                            presentation.dataset.presentationTitle || "";
+                        const matches = title.includes(searchTerm);
+
+                        if (isSearching) {
+                            // When searching, show all matches, hide non-matches
+                            if (matches) {
+                                presentation.classList.remove("hidden");
                             } else {
-                                // When not searching, restore default view (first 3 visible)
-                                const index = parseInt(
-                                    presentation.dataset.presentationIndex ||
-                                        "0",
-                                );
-                                if (index >= 3) {
-                                    presentation.classList.add("hidden");
-                                } else {
-                                    presentation.classList.remove("hidden");
-                                }
+                                presentation.classList.add("hidden");
                             }
-                        });
-
-                        // Reset button state when searching
-                        if (isSearching && exploreButton) {
-                            exploreButton.dataset.expanded = "false";
-                            exploreButton.textContent = "Explore more";
+                        } else {
+                            // When not searching, restore default view (first 3 visible)
+                            const index = parseInt(
+                                presentation.dataset.presentationIndex ||
+                                    "0",
+                            );
+                            if (index >= 3) {
+                                presentation.classList.add("hidden");
+                            } else {
+                                presentation.classList.remove("hidden");
+                            }
                         }
+                    });
 
-                        updateButtonVisibility();
-                    };
-
-                    if (communitySection && exploreButton) {
-                        updateButtonVisibility();
+                    // Reset button state when searching
+                    if (isSearching && exploreButton) {
+                        exploreButton.dataset.expanded = "false";
+                        exploreButton.textContent = "Explore more";
                     }
 
-                    // Search functionality
+                    updateButtonVisibility();
+                };
+
+                const toggleExploreMore = (e?: Event) => {
+                    if (e) {
+                        e.preventDefault();
+                    }
+                    if (isSearching || !communitySection) return;
+
+                    const expanded = isExpanded();
+                    const presentations = communitySection.querySelectorAll(
+                        "[data-presentation-index]",
+                    );
+
+                    presentations.forEach((presentation, index) => {
+                        if (index >= 3) {
+                            if (expanded) {
+                                presentation.classList.add("hidden");
+                            } else {
+                                presentation.classList.remove("hidden");
+                            }
+                        }
+                    });
+
+                    const newExpanded = !expanded;
+                    if (exploreButton) {
+                        exploreButton.dataset.expanded = newExpanded.toString();
+                        exploreButton.textContent = newExpanded
+                            ? "Explore less"
+                            : "Explore more";
+                    }
+                    if (exploreMobileLink) {
+                        const arrowSvg = exploreMobileLink.querySelector("svg")?.outerHTML || "";
+                        exploreMobileLink.innerHTML = newExpanded
+                            ? `Explore less ${arrowSvg}`
+                            : `Explore more ${arrowSvg}`;
+                    }
+                };
+
+                if (communitySection && exploreButton) {
+                    updateButtonVisibility();
+                }
+
+                // Search functionality (only if search input exists)
+                if (searchInput) {
                     searchInput.addEventListener("input", (e) => {
                         const query = (e.target as HTMLInputElement).value;
                         filterPresentations(query);
                     });
+                }
 
-                    // Explore more/less button
-                    if (exploreButton && communitySection) {
-                        exploreButton.addEventListener("click", (e) => {
-                            e.preventDefault();
-                            if (isSearching) return; // Disable button when searching
+                // Explore more/less button (desktop)
+                if (exploreButton && communitySection) {
+                    exploreButton.addEventListener("click", toggleExploreMore);
+                }
 
-                            const expanded = isExpanded();
-                            const presentations =
-                                communitySection.querySelectorAll(
-                                    "[data-presentation-index]",
-                                );
-
-                            presentations.forEach((presentation, index) => {
-                                if (index >= 3) {
-                                    if (expanded) {
-                                        presentation.classList.add("hidden");
-                                    } else {
-                                        presentation.classList.remove("hidden");
-                                    }
-                                }
-                            });
-
-                            exploreButton.dataset.expanded =
-                                (!expanded).toString();
-                            exploreButton.textContent = expanded
-                                ? "Explore more"
-                                : "Explore less";
-                        });
-                    }
+                // Explore link (mobile)
+                if (exploreMobileLink && communitySection) {
+                    exploreMobileLink.addEventListener(
+                        "click",
+                        toggleExploreMore,
+                    );
                 }
             }
         </script>
