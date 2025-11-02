@@ -34,6 +34,7 @@ export const presentationsTable = pgTable("presentations", {
     public: boolean().notNull().default(false),
 
     slides: json().notNull(),
+    style: json(), // Shared style for all slides (backgroundColor, textColor)
 
     likes: integer().notNull().default(0),
 

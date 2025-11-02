@@ -1,9 +1,8 @@
 import { createSignal, type Accessor } from "solid-js";
 import type { SlideFormat, Element } from "../../lib/slides";
-import { createShared, PRESENTATION } from "./primitives/createShared";
+import { createShared, PRESENTATION, useSharedSlides } from "./primitives/createShared";
 import type { Presentation } from "../../lib/db";
 import { createQuery } from "./primitives/createQuery";
-import { parseSlides } from "../../scripts/slides";
 
 export function SlideProperties(props: { presentation: Presentation }) {
     const [slideIndex, setSlideIndex] = createQuery("slide", "1");
@@ -12,7 +11,8 @@ export function SlideProperties(props: { presentation: Presentation }) {
         props.presentation,
     );
     
-    const slides = () => parseSlides(presentation()?.slides);
+    // Use shared slides to ensure consistency with other components
+    const slides = useSharedSlides();
     const currentSlideIndex = () => parseInt(slideIndex(), 10) - 1;
     const currentSlide = (): SlideFormat | undefined => {
         const s = slides();

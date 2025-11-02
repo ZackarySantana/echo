@@ -5,6 +5,29 @@ import { z } from "zod";
  * ============================================================================ */
 
 /**
+ * Hex color like #fff or #112233
+ */
+export const HexColorSchema = z
+    .string()
+    .regex(
+        /^#(?:[0-9a-fA-F]{3}){1,2}$/,
+        "Expected hex color like #fff or #112233",
+    )
+    .describe("Hex color");
+
+/**
+ * Slide style schema - shared styling properties for slides
+ * Note: Defaults match the app theme (dark mode) but can be overridden
+ */
+export const SlideStyleSchema = z
+    .object({
+        backgroundColor: HexColorSchema.default("#1a1d24").describe("Background color of the slide (defaults to app theme card color)"),
+        textColor: HexColorSchema.default("#ffffff").describe("Text color for the slide (defaults to white for dark theme)"),
+    })
+    .strict()
+    .describe("Style properties for the slide");
+
+/**
  * Pre-determined slide formats - each has specific layout and content requirements
  */
 export const SlideFormatEnumSchema = z.enum([
@@ -214,36 +237,43 @@ export const SlideFormatSchema = z.discriminatedUnion("format", [
         title: z.string().min(1).max(100).describe("Slide title"),
         format: z.literal("title-only"),
         content: TitleOnlyContentSchema,
+        style: SlideStyleSchema.optional().describe("Optional style properties"),
     }).strict(),
     z.object({
         title: z.string().min(1).max(100).describe("Slide title"),
         format: z.literal("title-subtitle"),
         content: TitleSubtitleContentSchema,
+        style: SlideStyleSchema.optional().describe("Optional style properties"),
     }).strict(),
     z.object({
         title: z.string().min(1).max(100).describe("Slide title"),
         format: z.literal("title-bullets"),
         content: TitleBulletsContentSchema,
+        style: SlideStyleSchema.optional().describe("Optional style properties"),
     }).strict(),
     z.object({
         title: z.string().min(1).max(100).describe("Slide title"),
         format: z.literal("title-paragraph"),
         content: TitleParagraphContentSchema,
+        style: SlideStyleSchema.optional().describe("Optional style properties"),
     }).strict(),
     z.object({
         title: z.string().min(1).max(100).describe("Slide title"),
         format: z.literal("title-2columns"),
         content: Title2ColumnsContentSchema,
+        style: SlideStyleSchema.optional().describe("Optional style properties"),
     }).strict(),
     z.object({
         title: z.string().min(1).max(100).describe("Slide title"),
         format: z.literal("title-image"),
         content: TitleImageContentSchema,
+        style: SlideStyleSchema.optional().describe("Optional style properties"),
     }).strict(),
     z.object({
         title: z.string().min(1).max(100).describe("Slide title"),
         format: z.literal("comparison"),
         content: ComparisonContentSchema,
+        style: SlideStyleSchema.optional().describe("Optional style properties"),
     }).strict(),
 ]).describe("Rigid slide format - format determines exact layout and content structure");
 
@@ -251,6 +281,8 @@ export const SlideFormatSchema = z.discriminatedUnion("format", [
  * TYPE EXPORTS
  * ============================================================================ */
 
+export type HexColor = z.infer<typeof HexColorSchema>;
+export type SlideStyle = z.infer<typeof SlideStyleSchema>;
 export type SlideFormatEnum = z.infer<typeof SlideFormatEnumSchema>;
 export type ImageInfo = z.infer<typeof ImageInfoSchema>;
 export type PollType = z.infer<typeof PollTypeSchema>;

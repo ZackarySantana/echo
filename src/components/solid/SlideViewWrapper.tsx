@@ -1,7 +1,6 @@
 import { createMemo } from "solid-js";
 import { createQuery } from "./primitives/createQuery";
-import { createShared, PRESENTATION } from "./primitives/createShared";
-import { parseSlides } from "../../scripts/slides";
+import { createShared, PRESENTATION, useSharedSlides } from "./primitives/createShared";
 import { SlideView } from "./SlideView";
 import type { Presentation } from "../../lib/db";
 
@@ -12,7 +11,19 @@ export function SlideViewWrapper(props: { presentation: Presentation }) {
         props.presentation,
     );
     
-    const slides = () => parseSlides(presentation()?.slides);
+    // Use shared slides to ensure consistency with PresentationSidebar
+    const slides = useSharedSlides();
+    
+    // Get presentation-level style (shared across all slides)
+    const presentationStyle = createMemo(() => {
+        const pres = presentation();
+        if (!pres?.style) return null;
+        // Validate it's a style object
+        if (typeof pres.style === 'object' && pres.style !== null) {
+            return pres.style as { backgroundColor?: string; textColor?: string };
+        }
+        return null;
+    });
     
     // Use createMemo to ensure reactivity when slideIndex or slides change
     const currentSlide = createMemo(() => {
@@ -22,6 +33,6 @@ export function SlideViewWrapper(props: { presentation: Presentation }) {
         return s && idx >= 0 && idx < s.length ? s[idx] : undefined;
     });
 
-    return <SlideView slide={currentSlide} scale={0.7} />;
+    return <SlideView slide={currentSlide} scale={0.7} presentationStyle={presentationStyle()} />;
 }
 

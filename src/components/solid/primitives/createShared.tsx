@@ -1,6 +1,9 @@
-import { createRoot, createSignal, type Accessor, type Setter } from "solid-js";
+import { createRoot, createSignal, createMemo, type Accessor, type Setter } from "solid-js";
+import { parseSlides } from "../../../scripts/slides";
+import type { SlideFormat } from "../../../lib/slides";
 
 export const PRESENTATION = "presentation";
+export const SLIDES = "slides";
 
 type Refresh = () => Promise<void>;
 
@@ -43,4 +46,28 @@ export function createShared<T = any>(
     }
 
     return w[key] as [Accessor<T | null>, Setter<T | null>, Refresh];
+}
+
+/**
+ * Shared slides parser - ensures all components use the same parsed slides array
+ */
+export function useSharedSlides(): Accessor<SlideFormat[] | null> {
+    const w = window as any;
+    
+    if (!w[SLIDES]) {
+        const [presentation] = createShared<any>(PRESENTATION);
+        
+        w[SLIDES] = createRoot(() => {
+            // Create a memoized parsed slides that updates when presentation changes
+            const parsed = createMemo(() => {
+                const pres = presentation();
+                if (!pres?.slides) return null;
+                return parseSlides(pres.slides);
+            });
+            
+            return parsed;
+        });
+    }
+    
+    return w[SLIDES] as Accessor<SlideFormat[] | null>;
 }

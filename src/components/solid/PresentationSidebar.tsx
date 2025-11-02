@@ -1,14 +1,14 @@
 import { For } from "solid-js";
 import type { Presentation } from "../../lib/db";
-import { parseSlides } from "../../scripts/slides";
 import { createQuery } from "./primitives/createQuery";
-import { createShared, PRESENTATION } from "./primitives/createShared";
+import { createShared, PRESENTATION, useSharedSlides } from "./primitives/createShared";
 import type { SlideFormat } from "../../lib/slides";
 import { SlideRenderer } from "./SlideRenderer";
 
 function SlideThumbnail(props: { 
     slide: SlideFormat;
     isSelected: boolean;
+    presentationStyle?: { backgroundColor?: string; textColor?: string } | null;
 }) {
     // Calculate scale to fit thumbnail nicely
     const thumbnailScale = 0.2;
@@ -18,6 +18,7 @@ function SlideThumbnail(props: {
             <SlideRenderer
                 slide={props.slide}
                 scale={thumbnailScale}
+                presentationStyle={props.presentationStyle}
             />
         </div>
     );
@@ -31,7 +32,19 @@ export function PresentationSidebar(props: { presentation: Presentation }) {
         props.presentation,
     );
     
-    const slides = () => parseSlides(presentation()?.slides);
+    // Use shared slides to ensure consistency with SlideViewWrapper
+    const slides = useSharedSlides();
+    
+    // Get presentation-level style (shared across all slides)
+    const presentationStyle = () => {
+        const pres = presentation();
+        if (!pres?.style) return null;
+        // Validate it's a style object
+        if (typeof pres.style === 'object' && pres.style !== null) {
+            return pres.style as { backgroundColor?: string; textColor?: string };
+        }
+        return null;
+    };
 
     // Helper to get current slide by index
     const getSlideByIndex = (index: number): SlideFormat | undefined => {
@@ -71,15 +84,16 @@ export function PresentationSidebar(props: { presentation: Presentation }) {
                                         : "border-gray-700"
                                 }`}
                                 onClick={() => setSlide(slideNum.toString())}
-                            >
-                                <SlideThumbnail 
-                                    slide={slideData} 
-                                    isSelected={isSelected}
-                                />
-                                <p class="mt-2 text-xs font-medium text-white line-clamp-1">
-                                    {slideData.title}
-                                </p>
-                            </button>
+                                        >
+                                            <SlideThumbnail 
+                                                slide={slideData} 
+                                                isSelected={isSelected}
+                                                presentationStyle={presentationStyle()}
+                                            />
+                                            <p class="mt-2 text-xs font-medium text-white line-clamp-1">
+                                                {slideData.title}
+                                            </p>
+                                        </button>
                         );
                     }}
                 </For>

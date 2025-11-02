@@ -10,7 +10,7 @@ const slideSystemContent = `You are an expert presentation creator. You focus on
 
 CRITICAL RULES - FOLLOW EXACTLY:
 1. Each slide uses a PRE-DETERMINED FORMAT template that MUST be followed exactly
-2. NO color fields are allowed - do not include backgroundColor or textColor
+2. Optional style field: { backgroundColor?: "#ffffff" (hex color), textColor?: "#000000" (hex color) }
 3. Images can be added to ANY slide (except title-image format where it's required)
 4. The content structure MUST match the chosen format exactly
 5. Buttons are separate objects in the "buttons" array field - NOT embedded in text
@@ -97,7 +97,7 @@ Note: polls? and buttons? are available in ALL formats. Images are optional on a
 
 IMPORTANT RULES:
 - All buttons must reference a poll ID that exists in the polls array. Multiple buttons can reference the same poll.
-- DO NOT include any color fields (backgroundColor, textColor).
+- Optional style field: slides can include style: { backgroundColor?: "#ffffff", textColor?: "#000000" } for custom colors.
 - Each format has exactly one allowed content structure.
 - Polls are optional (max 5 per slide) with support for interactive voting features.
 - Buttons are optional (max 10 per slide) and must reference a poll ID.

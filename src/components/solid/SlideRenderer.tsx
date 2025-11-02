@@ -1,6 +1,7 @@
 import { createSignal, onMount, onCleanup, For } from "solid-js";
 import type { SlideFormat, ImageInfo } from "../../lib/slides";
 import { SlideButton } from "./SlideButton";
+import { getDefaultPresentationStyle } from "../../lib/presentation-styles";
 
 function ImageElement(props: {
     image: ImageInfo;
@@ -126,11 +127,13 @@ interface SlideRendererProps {
     scale?: number;
     className?: string;
     onButtonClick?: (buttonId: string, pollId: string) => void;
+    presentationStyle?: { backgroundColor?: string; textColor?: string } | null;
 }
 
 export function SlideRenderer(props: SlideRendererProps) {
     const scale = props.scale ?? 1;
     const slide = props.slide;
+    const presentationStyle = props.presentationStyle;
     const baseWidth = 960;
     const baseHeight = 540;
     
@@ -157,6 +160,17 @@ export function SlideRenderer(props: SlideRendererProps) {
         return polls().find(p => p.id === pollId);
     };
 
+    // Get style properties - use slide-specific style, fallback to presentation default, then global app theme defaults
+    const defaultStyle = getDefaultPresentationStyle();
+    const backgroundColor = () => 
+        slide.style?.backgroundColor ?? 
+        presentationStyle?.backgroundColor ?? 
+        defaultStyle.backgroundColor;
+    const textColor = () => 
+        slide.style?.textColor ?? 
+        presentationStyle?.textColor ?? 
+        defaultStyle.textColor;
+
     const renderContent = () => {
         switch (slide.format) {
             case "title-only":
@@ -174,6 +188,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                         <h3
                             class="font-semibold mb-4"
                             style={{
+                                color: textColor(),
                                 "font-size": `${subtitleFontSize}px`,
                                 "line-height": "1.4",
                             }}
@@ -195,6 +210,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                                     <li
                                         class="text-left"
                                         style={{
+                                            color: textColor(),
                                             "font-size": `${bulletFontSize}px`,
                                             "line-height": "1.6",
                                         }}
@@ -218,6 +234,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                         <p
                             class="text-left whitespace-pre-wrap"
                             style={{
+                                color: textColor(),
                                 "font-size": `${textFontSize}px`,
                                 "line-height": "1.6",
                             }}
@@ -239,6 +256,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                             <p
                                 class="whitespace-pre-wrap"
                                 style={{
+                                    color: textColor(),
                                     "font-size": `${textFontSize}px`,
                                     "line-height": "1.6",
                                 }}
@@ -250,6 +268,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                             <p
                                 class="whitespace-pre-wrap"
                                 style={{
+                                    color: textColor(),
                                     "font-size": `${textFontSize}px`,
                                     "line-height": "1.6",
                                 }}
@@ -279,6 +298,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                             <h4
                                 class="font-semibold mb-3"
                                 style={{
+                                    color: textColor(),
                                     "font-size": `${subtitleFontSize}px`,
                                 }}
                             >
@@ -289,6 +309,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                                     {(item) => (
                                         <li
                                             style={{
+                                                color: textColor(),
                                                 "font-size": `${bulletFontSize}px`,
                                                 "line-height": "1.6",
                                             }}
@@ -303,6 +324,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                             <h4
                                 class="font-semibold mb-3"
                                 style={{
+                                    color: textColor(),
                                     "font-size": `${subtitleFontSize}px`,
                                 }}
                             >
@@ -313,6 +335,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                                     {(item) => (
                                         <li
                                             style={{
+                                                color: textColor(),
                                                 "font-size": `${bulletFontSize}px`,
                                                 "line-height": "1.6",
                                             }}
@@ -338,10 +361,11 @@ export function SlideRenderer(props: SlideRendererProps) {
 
     return (
         <div
-            class={`relative overflow-hidden rounded-lg bg-white ${props.className || ""}`}
+            class={`relative overflow-hidden rounded-lg ${props.className || ""}`}
             style={{
                 width: `${width}px`,
                 height: `${height}px`,
+                "background-color": backgroundColor(),
             }}
         >
             {/* Slide Title */}
@@ -353,8 +377,9 @@ export function SlideRenderer(props: SlideRendererProps) {
                 }}
             >
                 <h2
-                    class="font-bold break-words text-black"
+                    class="font-bold break-words"
                     style={{
+                        color: textColor(),
                         "font-size": `${titleFontSize}px`,
                         "line-height": "1.2",
                         "word-wrap": "break-word",
