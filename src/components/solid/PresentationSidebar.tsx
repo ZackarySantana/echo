@@ -18,31 +18,33 @@ export function PresentationSidebar(props: { presentation: Presentation }) {
 
     return (
         <>
-            <h1 class="text-xl font-semibold text-white">
+            <h1 class="pl-3 text-xl font-semibold text-white">
                 {presentation()?.name}
             </h1>
 
-            <div>
-                <p class="text-md mt-5 font-medium">Slides</p>
+            <div class="pl-3">
+                <p class="text-md mt-2 font-medium text-gray-200">Slides</p>
                 <p class="text-base text-gray-500">
                     {slide()} of {slides()?.length || 0}
                 </p>
             </div>
 
-            <For each={slides()}>
-                {(s, i) => (
-                    <div
-                        class={`cursor-pointer rounded-md p-3 hover:bg-gray-800 ${
-                            slide() === (i() + 1).toString()
-                                ? "bg-gray-800"
-                                : ""
-                        }`}
-                        onClick={() => setSlide(i() + 1)}
-                    >
-                        <p class="font-medium text-white">{s.title}</p>
-                    </div>
-                )}
-            </For>
+            <div class="mt-4 flex flex-col gap-2">
+                <For each={slides()}>
+                    {(s, i) => (
+                        <button
+                            class={`w-full cursor-pointer rounded-md p-3 text-left transition-all hover:bg-gray-800 ${
+                                slide() === (i() + 1).toString()
+                                    ? "bg-gray-800"
+                                    : ""
+                            }`}
+                            onClick={() => setSlide(i() + 1)}
+                        >
+                            <p class="font-medium text-white">{s.title}</p>
+                        </button>
+                    )}
+                </For>
+            </div>
         </>
     );
 }
