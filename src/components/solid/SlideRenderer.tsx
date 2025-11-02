@@ -405,6 +405,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                     <div class="absolute bottom-0 left-0 right-0 flex flex-wrap items-center justify-center gap-2" style={{
                         padding: `${contentPadding}px`,
                         "padding-top": "16px",
+                        "padding-bottom": `${contentPadding}px`,
                     }}>
                         <For each={buttons()}>
                             {(button) => {

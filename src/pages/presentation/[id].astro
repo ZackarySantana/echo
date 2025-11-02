@@ -43,9 +43,9 @@ if (err) {
 
         The layout should be responsive, on smaller screens the sidebars should be collapsible or hidden.
         -->
-        <main class="flex h-full w-full min-h-0 overflow-hidden">
+        <main class="flex h-screen w-full overflow-hidden">
             <!-- Main slide area -->
-            <div class="flex flex-1 min-w-0 items-center justify-center overflow-auto bg-bg">
+            <div class="flex flex-1 items-center justify-center overflow-auto bg-bg">
                 <SlideViewWrapper presentation={presentation} client:only="solid-js" />
             </div>
 
