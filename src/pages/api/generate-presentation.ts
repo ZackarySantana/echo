@@ -9,7 +9,7 @@ const slideSystemContent = `You are an expert presentation creator. You focus on
 ${JSON.stringify(z.toJSONSchema(SlideFormatSchema))}`;
 
 // This creates a presentation from the topic given in the search params.
-export const GET: APIRoute = async ({ request, url, locals }) => {
+export const GET: APIRoute = async ({ url, locals }) => {
     const topic = url.searchParams.get("topic");
     if (!topic || topic.trim().length === 0) {
         return redirectTo404();
@@ -22,7 +22,7 @@ export const GET: APIRoute = async ({ request, url, locals }) => {
 
     const dbUserResp = await getOptionalUser(user.id);
     if (!dbUserResp) {
-        return redirectTo404();
+        return redirectTo404("Please add an AI API key in your settings.");
     }
     const [dbUser, dbUserError] = dbUserResp;
     if (dbUserError) {
@@ -41,8 +41,7 @@ export const GET: APIRoute = async ({ request, url, locals }) => {
     }
 
     if (!aiResp) {
-        console.log("no ai response");
-        return redirectTo404();
+        return redirectTo404("There was no valid API configuration found.");
     }
 
     const slidesAsJson = JSON.parse(aiResp);
@@ -50,14 +49,16 @@ export const GET: APIRoute = async ({ request, url, locals }) => {
     const title = slidesAsJson.title;
     const slides = slidesAsJson.slides;
     if (!title || !slides) {
-        console.log("AI response missing title or slides");
-        return redirectTo404();
+        return redirectTo404(
+            "Failed to generate presentation. Please try again.",
+        );
     }
 
     let parsedSlides = z.array(SlideFormatSchema).safeParse(slides);
     if (!parsedSlides.success) {
-        console.error("Slide parsing error:", parsedSlides.error.format());
-        return redirectTo404();
+        return redirectTo404(
+            "Failed to generate valid presentation. Please try again.",
+        );
     }
 
     return new Response(
