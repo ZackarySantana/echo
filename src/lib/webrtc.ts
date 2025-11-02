@@ -1,5 +1,5 @@
 // WebRTC P2P connection manager
-// Hybrid approach: in-memory for speed, database for persistence
+// Database-first approach for serverless compatibility - always fresh state
 import { getRoomByCode, updateRoom } from "./db";
 
 export type SignalMessage = {
@@ -13,97 +13,59 @@ type SignalingState = {
     peers: string[];
     signals: Record<string, SignalMessage[]>; // peerId -> signals[]
     peerToOwner: Record<string, string>; // peerId -> ownerId
-    lastSync: number; // Timestamp of last DB sync
 };
 
-// In-memory store for fast access (primary)
-const inMemoryStore = new Map<string, SignalingState>();
-
-// Track which rooms need syncing
-const roomsToSync = new Set<string>();
-let syncInterval: number | null = null;
-
-// Sync all rooms to database periodically (every 5 seconds)
-function startSyncTimer() {
-    if (syncInterval) return;
-    
-    syncInterval = setInterval(async () => {
-        const rooms = Array.from(roomsToSync);
-        roomsToSync.clear();
-        
-        for (const roomCode of rooms) {
-            const state = inMemoryStore.get(roomCode);
-            if (state) {
-                try {
-                    await updateRoom(roomCode, { signaling: {
-                        peers: state.peers,
-                        signals: state.signals,
-                        peerToOwner: state.peerToOwner,
-                    } });
-                    state.lastSync = Date.now();
-                } catch (err) {
-                    console.error(`Failed to sync room ${roomCode}:`, err);
-                    roomsToSync.add(roomCode); // Retry next time
-                }
-            }
-        }
-    }, 5000) as unknown as number;
-}
-
-// Initialize sync timer
-startSyncTimer();
-
+// Always read from database (fresh state across serverless instances)
 async function getSignalingState(roomCode: string): Promise<SignalingState> {
-    // Check in-memory first (fast)
-    const cached = inMemoryStore.get(roomCode);
-    if (cached) {
-        return cached;
-    }
-    
-    // Load from database if not in memory
     const [room, err] = await getRoomByCode(roomCode);
     if (err || !room) {
-        const emptyState: SignalingState = { peers: [], signals: {}, peerToOwner: {}, lastSync: Date.now() };
-        inMemoryStore.set(roomCode, emptyState);
-        return emptyState;
+        return { peers: [], signals: {}, peerToOwner: {} };
     }
     
     const signaling = room.signaling;
-    let state: SignalingState;
-    
     if (signaling && typeof signaling === 'object') {
         const dbState = signaling as any;
-        state = {
-            peers: dbState.peers || [],
+        return {
+            peers: Array.isArray(dbState.peers) ? dbState.peers : [],
             signals: dbState.signals || {},
             peerToOwner: dbState.peerToOwner || {},
-            lastSync: Date.now(),
         };
-    } else {
-        state = { peers: [], signals: {}, peerToOwner: {}, lastSync: Date.now() };
     }
     
-    // Cache in memory
-    inMemoryStore.set(roomCode, state);
-    return state;
+    return { peers: [], signals: {}, peerToOwner: {} };
 }
 
-function markForSync(roomCode: string) {
-    roomsToSync.add(roomCode);
+// Write immediately to database for visibility across instances
+async function saveSignalingState(roomCode: string, state: SignalingState): Promise<void> {
+    await updateRoom(roomCode, { 
+        signaling: {
+            peers: state.peers,
+            signals: state.signals,
+            peerToOwner: state.peerToOwner,
+        }
+    }).catch(err => {
+        console.error(`Failed to save signaling state for ${roomCode}:`, err);
+    });
 }
 
 export async function registerPeer(roomCode: string, peerId: string, ownerId?: string): Promise<void> {
     const state = await getSignalingState(roomCode);
     
+    let changed = false;
     if (!state.peers.includes(peerId)) {
         state.peers.push(peerId);
-        markForSync(roomCode);
+        changed = true;
     }
     
     // Track owner if provided
     if (ownerId && state.peerToOwner[peerId] !== ownerId) {
         state.peerToOwner[peerId] = ownerId;
-        markForSync(roomCode);
+        changed = true;
+    }
+    
+    // Write immediately so peer is visible across instances
+    if (changed) {
+        await saveSignalingState(roomCode, state);
     }
 }
 
@@ -140,14 +102,9 @@ export async function unregisterPeer(roomCode: string, peerId: string, roomOwner
     const hadSignals = peerId in state.signals;
     delete state.signals[peerId];
     
-    // Mark for sync if anything changed
+    // Write immediately if changed
     if (hadPeer || hadOwner || hadSignals) {
-        markForSync(roomCode);
-    }
-    
-    // If no peers left, clear from memory
-    if (state.peers.length === 0) {
-        inMemoryStore.delete(roomCode);
+        await saveSignalingState(roomCode, state);
     }
     
     return { isOwner: isOwner || false, ownerId: roomOwnerId };
@@ -175,18 +132,21 @@ export async function storeSignal(roomCode: string, signal: SignalMessage): Prom
         state.signals[signal.to] = state.signals[signal.to].slice(-50);
     }
     
-    // Mark for sync (but don't block)
-    markForSync(roomCode);
+    // Write immediately for fast delivery
+    await saveSignalingState(roomCode, state).catch(err => {
+        // Don't block on errors, but log them
+        console.error('Failed to save signal:', err);
+    });
     
     // Clean up old signals after 30 seconds (async, don't wait)
-    setTimeout(() => {
-        const currentState = inMemoryStore.get(roomCode);
-        if (currentState && currentState.signals[signal.to!]) {
+    setTimeout(async () => {
+        const currentState = await getSignalingState(roomCode);
+        if (currentState.signals[signal.to!]) {
             currentState.signals[signal.to!] = currentState.signals[signal.to!].filter(s => s !== signal);
             if (currentState.signals[signal.to!].length === 0) {
                 delete currentState.signals[signal.to!];
             }
-            markForSync(roomCode);
+            await saveSignalingState(roomCode, currentState).catch(() => {});
         }
     }, 30000);
 }
@@ -198,7 +158,8 @@ export async function getSignals(roomCode: string, peerId: string): Promise<Sign
     // Clear signals after retrieving (they've been delivered)
     if (signals.length > 0) {
         delete state.signals[peerId];
-        markForSync(roomCode);
+        // Write immediately to clear delivered signals
+        await saveSignalingState(roomCode, state).catch(() => {});
     }
     
     return signals;

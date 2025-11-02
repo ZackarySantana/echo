@@ -75,6 +75,22 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
             }),
         });
         
+        // Immediately discover peers (don't wait for polling)
+        try {
+            const peersResponse = await fetch(`/api/signal?roomCode=${props.room.code}&listPeers=true`);
+            if (peersResponse.ok) {
+                const data = await peersResponse.json();
+                const remotePeers = (data.peers || []).filter((p: string) => p !== peerId);
+                for (const remotePeerId of remotePeers) {
+                    if (!peerConnections.has(remotePeerId)) {
+                        await connectToPeer(remotePeerId);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Initial peer discovery error:', error);
+        }
+        
         // Start signaling
         startSignaling();
         
@@ -128,7 +144,7 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
     }
 
     async function startSignaling() {
-        const pollInterval = 2000; // Poll every 2 seconds
+        const pollInterval = 500; // Poll every 500ms for faster discovery
         signalingInterval = setInterval(async () => {
             try {
                 // Get list of peers
