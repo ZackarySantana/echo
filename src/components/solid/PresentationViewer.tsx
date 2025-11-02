@@ -24,6 +24,9 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
     let peerConnections: Map<string, RTCPeerConnection> = new Map();
     let channelToPeerId: Map<RTCDataChannel, string> = new Map();
     let signalingInterval: number | null = null;
+    let keepaliveIntervals: Map<string, number> = new Map();
+    let reconnectAttempts: Map<string, number> = new Map();
+    let reconnectTimeouts: Map<string, number> = new Map();
 
     // Determine if user is presenter (owner)
     onMount(async () => {
@@ -88,6 +91,16 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
     });
 
     function cleanup() {
+        // Clear all keepalive intervals
+        keepaliveIntervals.forEach(interval => clearInterval(interval));
+        keepaliveIntervals.clear();
+        
+        // Clear all reconnect timeouts
+        reconnectTimeouts.forEach(timeout => clearTimeout(timeout));
+        reconnectTimeouts.clear();
+        
+        reconnectAttempts.clear();
+        
         dataChannels.forEach(channel => {
             if (channel.readyState === 'open' || channel.readyState === 'connecting') {
                 channel.close();
@@ -138,12 +151,25 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
         try {
             if (signal.from === peerId) return;
 
-            const pc = peerConnections.get(signal.from) || createPeerConnection(signal.from);
-            peerConnections.set(signal.from, pc);
+            let pc = peerConnections.get(signal.from);
+            
+            // Create connection if it doesn't exist
+            if (!pc) {
+                pc = createPeerConnection(signal.from);
+                peerConnections.set(signal.from, pc);
+            }
 
             if (signal.type === 'offer') {
+                // If we already have a connection, restart ICE
+                if (pc.signalingState !== 'stable') {
+                    console.log(`Connection state not stable for ${signal.from}, creating new connection`);
+                    cleanupPeerConnection(signal.from);
+                    pc = createPeerConnection(signal.from);
+                    peerConnections.set(signal.from, pc);
+                }
+                
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-                const answer = await pc.createAnswer();
+                const answer = await pc.createAnswer({ iceRestart: false });
                 await pc.setLocalDescription(answer);
                 
                 await fetch('/api/signal', {
@@ -160,12 +186,31 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                     }),
                 });
             } else if (signal.type === 'answer') {
-                await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+                // Only set remote description if in the right state
+                if (pc.signalingState === 'have-local-offer') {
+                    await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+                }
             } else if (signal.type === 'ice-candidate') {
-                await pc.addIceCandidate(new RTCIceCandidate(signal.data));
+                // Only add candidate if connection is in a valid state
+                if (pc.remoteDescription && pc.signalingState !== 'closed') {
+                    try {
+                        await pc.addIceCandidate(new RTCIceCandidate(signal.data));
+                    } catch (e) {
+                        // Candidate might be outdated, ignore error
+                        console.warn('Failed to add ICE candidate (likely outdated):', e);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error handling signal:', error);
+            // If signal handling fails, try to reconnect
+            if (signal.from) {
+                const existingPc = peerConnections.get(signal.from);
+                if (existingPc && (existingPc.connectionState === 'failed' || existingPc.connectionState === 'closed')) {
+                    cleanupPeerConnection(signal.from);
+                    attemptReconnect(signal.from);
+                }
+            }
         }
     }
 
@@ -173,7 +218,13 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
         const pc = new RTCPeerConnection({
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                // Public TURN servers for better NAT traversal
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
             ],
+            iceCandidatePoolSize: 10,
         });
 
         pc.onicecandidate = (event) => {
@@ -194,15 +245,32 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
         };
 
         pc.onconnectionstatechange = () => {
-            if (pc.connectionState === 'connected') {
-                updateConnectionStatus();
-            } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-                peerConnections.delete(remotePeerId);
-                const channel = dataChannels.get(remotePeerId);
-                if (channel) {
-                    channelToPeerId.delete(channel);
+            const state = pc.connectionState;
+            console.log(`Connection state changed for ${remotePeerId}: ${state}`);
+            
+            if (state === 'connected') {
+                // Clear any reconnect attempts on successful connection
+                reconnectAttempts.delete(remotePeerId);
+                const timeout = reconnectTimeouts.get(remotePeerId);
+                if (timeout !== undefined) {
+                    clearTimeout(timeout);
+                    reconnectTimeouts.delete(remotePeerId);
                 }
-                dataChannels.delete(remotePeerId);
+                // Start keepalive
+                startKeepalive(remotePeerId);
+                updateConnectionStatus();
+            } else if (state === 'disconnected') {
+                // Try to reconnect if disconnected (might be temporary)
+                attemptReconnect(remotePeerId);
+                stopKeepalive(remotePeerId);
+                updateConnectionStatus();
+            } else if (state === 'failed' || state === 'closed') {
+                // Clean up and try to reconnect for failed connections
+                cleanupPeerConnection(remotePeerId);
+                attemptReconnect(remotePeerId);
+                updateConnectionStatus();
+            } else if (state === 'connecting') {
+                // Clear failed state indicators
                 updateConnectionStatus();
             }
         };
@@ -216,6 +284,7 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
 
     function setupDataChannel(channel: RTCDataChannel, remotePeerId?: string) {
         channel.onopen = () => {
+            console.log(`Data channel opened for ${remotePeerId || 'unknown peer'}`);
             updateConnectionStatus();
             
             // If we're the presenter and a new channel opens, send current slide immediately
@@ -233,6 +302,24 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
         channel.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
+                
+                // Handle keepalive pings
+                if (message.type === 'ping') {
+                    const peerIdForChannel = remotePeerId || channelToPeerId.get(channel);
+                    if (peerIdForChannel) {
+                        const channelToRespond = dataChannels.get(peerIdForChannel);
+                        if (channelToRespond && channelToRespond.readyState === 'open') {
+                            channelToRespond.send(JSON.stringify({ type: 'pong' }));
+                        }
+                    }
+                    return;
+                }
+                
+                if (message.type === 'pong') {
+                    // Pong received, connection is alive
+                    return;
+                }
+                
                 if (message.type === 'slide-change') {
                     // Audience receives updates from presenter
                     // Presenter can also receive if they reconnect or join from another device
@@ -251,9 +338,18 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
 
         channel.onerror = (error) => {
             console.error('Data channel error:', error);
+            const peerIdForChannel = remotePeerId || channelToPeerId.get(channel);
+            if (peerIdForChannel) {
+                stopKeepalive(peerIdForChannel);
+            }
         };
 
         channel.onclose = () => {
+            console.log(`Data channel closed for ${remotePeerId || 'unknown peer'}`);
+            const peerIdForChannel = remotePeerId || channelToPeerId.get(channel);
+            if (peerIdForChannel) {
+                stopKeepalive(peerIdForChannel);
+            }
             updateConnectionStatus();
         };
 
@@ -261,6 +357,100 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
         if (peerIdForChannel) {
             dataChannels.set(peerIdForChannel, channel);
         }
+    }
+    
+    function startKeepalive(remotePeerId: string) {
+        // Clear any existing keepalive
+        stopKeepalive(remotePeerId);
+        
+        // Send ping every 10 seconds
+        const interval = setInterval(() => {
+            const channel = dataChannels.get(remotePeerId);
+            if (channel && channel.readyState === 'open') {
+                try {
+                    channel.send(JSON.stringify({ type: 'ping' }));
+                } catch (e) {
+                    console.error('Error sending keepalive ping:', e);
+                    stopKeepalive(remotePeerId);
+                }
+            } else {
+                stopKeepalive(remotePeerId);
+            }
+        }, 10000) as unknown as number;
+        
+        keepaliveIntervals.set(remotePeerId, interval);
+    }
+    
+    function stopKeepalive(remotePeerId: string) {
+        const interval = keepaliveIntervals.get(remotePeerId);
+        if (interval !== undefined) {
+            clearInterval(interval);
+            keepaliveIntervals.delete(remotePeerId);
+        }
+    }
+    
+    function cleanupPeerConnection(remotePeerId: string) {
+        stopKeepalive(remotePeerId);
+        const pc = peerConnections.get(remotePeerId);
+        if (pc) {
+            pc.close();
+            peerConnections.delete(remotePeerId);
+        }
+        const channel = dataChannels.get(remotePeerId);
+        if (channel) {
+            channelToPeerId.delete(channel);
+            dataChannels.delete(remotePeerId);
+        }
+    }
+    
+    function attemptReconnect(remotePeerId: string) {
+        // Clear any existing reconnect timeout
+        const existingTimeout = reconnectTimeouts.get(remotePeerId);
+        if (existingTimeout !== undefined) {
+            clearTimeout(existingTimeout);
+        }
+        
+        const attempts = reconnectAttempts.get(remotePeerId) || 0;
+        
+        // Don't reconnect too many times (max 5 attempts)
+        if (attempts >= 5) {
+            console.log(`Max reconnection attempts reached for ${remotePeerId}`);
+            reconnectAttempts.delete(remotePeerId);
+            reconnectTimeouts.delete(remotePeerId);
+            return;
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        const delay = Math.min(1000 * Math.pow(2, attempts), 16000);
+        reconnectAttempts.set(remotePeerId, attempts + 1);
+        
+        console.log(`Attempting to reconnect to ${remotePeerId} in ${delay}ms (attempt ${attempts + 1}/5)`);
+        
+        const timeout = setTimeout(async () => {
+            reconnectTimeouts.delete(remotePeerId);
+            
+            // Only reconnect if peer is still registered
+            try {
+                const peersResponse = await fetch(`/api/signal?roomCode=${props.room.code}&listPeers=true`);
+                if (peersResponse.ok) {
+                    const data = await peersResponse.json();
+                    const remotePeers = (data.peers || []).filter((p: string) => p !== peerId);
+                    
+                    if (remotePeers.includes(remotePeerId) && !peerConnections.has(remotePeerId)) {
+                        console.log(`Reconnecting to ${remotePeerId}`);
+                        await connectToPeer(remotePeerId);
+                    } else {
+                        // Peer no longer exists, clean up
+                        reconnectAttempts.delete(remotePeerId);
+                    }
+                }
+            } catch (error) {
+                console.error('Error during reconnection:', error);
+                reconnectAttempts.delete(remotePeerId);
+            }
+        }, delay) as unknown as number;
+        
+        reconnectTimeouts.set(remotePeerId, timeout);
     }
     
     function updateConnectionStatus() {
@@ -275,21 +465,36 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
     }
 
     async function connectToPeer(remotePeerId: string) {
-        if (peerConnections.has(remotePeerId)) return;
+        // If already connecting or connected, don't reconnect
+        const existingPc = peerConnections.get(remotePeerId);
+        if (existingPc) {
+            const state = existingPc.connectionState;
+            if (state === 'connected' || state === 'connecting') {
+                return;
+            }
+            // If in a failed state, clean it up first
+            cleanupPeerConnection(remotePeerId);
+        }
 
         const shouldOffer = peerId < remotePeerId;
         const pc = createPeerConnection(remotePeerId);
         peerConnections.set(remotePeerId, pc);
 
         if (shouldOffer) {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            await sendSignal({
-                type: 'offer',
-                from: peerId,
-                to: remotePeerId,
-                data: offer,
-            });
+            try {
+                const offer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(offer);
+                await sendSignal({
+                    type: 'offer',
+                    from: peerId,
+                    to: remotePeerId,
+                    data: offer,
+                });
+            } catch (error) {
+                console.error('Error creating offer:', error);
+                cleanupPeerConnection(remotePeerId);
+                attemptReconnect(remotePeerId);
+            }
         }
     }
 
@@ -468,9 +673,15 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                     <div class="h-6 w-px bg-gray-600"></div>
                     <h1 class="text-xl font-semibold text-white">{presentation()?.name}</h1>
                     <div class="flex items-center gap-2">
-                        <div class={`h-2 w-2 rounded-full ${connected() ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                        <div class={`h-2 w-2 rounded-full ${connected() ? 'bg-green-500 animate-pulse' : peerCount() > 0 ? 'bg-yellow-500 animate-pulse' : 'bg-gray-500'}`}></div>
                         <span class="text-sm text-gray-400">
-                            {connected() ? `${peerCount()} connected` : 'Connecting...'}
+                            {connected() 
+                                ? `${peerCount()} ${peerCount() === 1 ? 'peer connected' : 'peers connected'}`
+                                : peerCount() > 0 
+                                ? 'Connecting...'
+                                : isPresenter() 
+                                ? 'Waiting for attendees...'
+                                : 'Connecting to presenter...'}
                         </span>
                     </div>
                 </div>
