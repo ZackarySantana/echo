@@ -393,11 +393,79 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
         return s && idx >= 0 && idx < s.length ? s[idx] : undefined;
     });
 
+    // Calculate optimal scale based on viewport size
+    const [optimalScale, setOptimalScale] = createSignal(1.2); // Start with a larger default
+    const baseWidth = 960;
+    const baseHeight = 540;
+    
+    // Calculate scale based on available viewport space
+    const calculateScale = () => {
+        if (typeof window === 'undefined') return 1.2;
+        
+        // Get viewport dimensions minus padding and header
+        const headerHeight = 72; // Approximate header height
+        const padding = 32; // 16px on each side
+        const availableWidth = window.innerWidth - padding;
+        const availableHeight = window.innerHeight - headerHeight - padding;
+        
+        // Calculate scale based on width and height, use the smaller one to fit
+        const widthScale = availableWidth / baseWidth;
+        const heightScale = availableHeight / baseHeight;
+        
+        // Use 95% of the smaller scale to ensure some padding
+        const scale = Math.min(widthScale, heightScale) * 0.95;
+        
+        // Clamp between reasonable min/max
+        return Math.max(0.5, Math.min(2.5, scale));
+    };
+
+    onMount(() => {
+        // Calculate initial scale
+        setOptimalScale(calculateScale());
+        
+        // Update on window resize
+        const handleResize = () => {
+            setOptimalScale(calculateScale());
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    });
+
     return (
         <div class="flex h-screen w-full flex-col overflow-hidden bg-bg">
             {/* Header with controls and connection status */}
             <div class="flex items-center justify-between border-b border-border-sidebar bg-bg-sidebar px-6 py-4">
                 <div class="flex items-center gap-4">
+                    <a
+                        href="/"
+                        class="flex items-center gap-3 text-white hover:opacity-80 transition-opacity cursor-pointer"
+                        title="Home"
+                    >
+                        {/* Podcast icon - exact SVG from Lucide */}
+                        <svg
+                            class="h-6 w-6"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M13 17a1 1 0 1 0-2 0l.5 4.5a0.5 0.5 0 0 0 1 0z" fill="currentColor" />
+                            <path d="M16.85 18.58a9 9 0 1 0-9.7 0" />
+                            <path d="M8 14a5 5 0 1 1 8 0" />
+                            <circle cx="12" cy="11" r="1" fill="currentColor" />
+                        </svg>
+                        <h1 class="text-2xl font-bold">Echo</h1>
+                    </a>
+                    <div class="h-6 w-px bg-gray-600"></div>
                     <h1 class="text-xl font-semibold text-white">{presentation()?.name}</h1>
                     <div class="flex items-center gap-2">
                         <div class={`h-2 w-2 rounded-full ${connected() ? 'bg-green-500' : 'bg-gray-500'}`}></div>
@@ -437,7 +505,7 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
             </div>
 
             {/* Main slide area */}
-            <div class="flex flex-1 items-center justify-center overflow-auto bg-bg p-8">
+            <div class="flex flex-1 items-center justify-center overflow-auto bg-bg p-4">
                 <Show
                     when={currentSlideData()}
                     keyed={(slide) => slide.title + slideIndex()}
@@ -445,8 +513,8 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                         <div
                             class="relative overflow-hidden rounded-lg shadow-2xl"
                             style={{
-                                width: `${960 * 0.7}px`,
-                                height: `${540 * 0.7}px`,
+                                width: `${baseWidth * optimalScale()}px`,
+                                height: `${baseHeight * optimalScale()}px`,
                                 "background-color": presentationStyle()?.backgroundColor ?? defaultStyle.backgroundColor,
                             }}
                         />
@@ -455,7 +523,7 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                     {(slide) => (
                         <SlideRenderer
                             slide={slide}
-                            scale={0.7}
+                            scale={optimalScale()}
                             className="shadow-2xl"
                             presentationStyle={presentationStyle()}
                             onButtonClick={handleButtonClick}
