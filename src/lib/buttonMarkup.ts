@@ -92,3 +92,4 @@ export function stripButtons(text: string): string {
     return text.replace(/\[button:[^\|]+\|(action|metadata):[^\]]+\]/g, "");
 }
 
+
