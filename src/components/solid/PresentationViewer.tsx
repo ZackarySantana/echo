@@ -1,6 +1,7 @@
 import {
     createSignal,
     createMemo,
+    createEffect,
     onMount,
     onCleanup,
     Show,
@@ -889,20 +890,33 @@ export function PresentationViewer(props: {
         return s && idx >= 0 && idx < s.length ? s[idx] : undefined;
     });
 
-    // Calculate optimal scale based on viewport size
-    const [optimalScale, setOptimalScale] = createSignal(1.2); // Start with a larger default
+    // Track window dimensions reactively for scale calculation
+    // Try to get accurate initial values if window is available
+    const getInitialDimensions = () => {
+        if (typeof window !== "undefined") {
+            return {
+                width: window.innerWidth || 1920,
+                height: window.innerHeight || 1080,
+            };
+        }
+        return { width: 1920, height: 1080 };
+    };
+
+    const initialDims = getInitialDimensions();
+    const [windowWidth, setWindowWidth] = createSignal(initialDims.width);
+    const [windowHeight, setWindowHeight] = createSignal(initialDims.height);
+
     const baseWidth = 960;
     const baseHeight = 540;
 
-    // Calculate scale based on available viewport space
-    const calculateScale = () => {
-        if (typeof window === "undefined") return 1.2;
-
+    // Calculate optimal scale reactively based on viewport size
+    // This ensures correct calculation from the first render
+    const optimalScale = createMemo(() => {
         // Get viewport dimensions minus padding and header
         const headerHeight = 72; // Approximate header height
         const padding = 32; // 16px on each side
-        const availableWidth = window.innerWidth - padding;
-        const availableHeight = window.innerHeight - headerHeight - padding;
+        const availableWidth = windowWidth() - padding;
+        const availableHeight = windowHeight() - headerHeight - padding;
 
         // Calculate scale based on width and height, use the smaller one to fit
         const widthScale = availableWidth / baseWidth;
@@ -913,21 +927,40 @@ export function PresentationViewer(props: {
 
         // Clamp between reasonable min/max
         return Math.max(0.5, Math.min(2.5, scale));
-    };
+    });
 
     onMount(() => {
-        // Calculate initial scale
-        setOptimalScale(calculateScale());
+        // Update window dimensions immediately and after layout
+        const updateDimensions = () => {
+            setWindowWidth(window.innerWidth);
+            setWindowHeight(window.innerHeight);
+        };
+
+        // Update immediately
+        updateDimensions();
+
+        // Update after layout is complete (handles mobile browser chrome, etc.)
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                updateDimensions();
+            });
+        });
 
         // Update on window resize
         const handleResize = () => {
-            setOptimalScale(calculateScale());
+            updateDimensions();
         };
 
         window.addEventListener("resize", handleResize);
+        // Also listen to orientation change on mobile
+        window.addEventListener("orientationchange", () => {
+            // Wait a bit for orientation change to complete
+            setTimeout(updateDimensions, 100);
+        });
 
         return () => {
             window.removeEventListener("resize", handleResize);
+            window.removeEventListener("orientationchange", updateDimensions);
         };
     });
 
