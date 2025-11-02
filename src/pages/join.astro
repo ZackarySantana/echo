@@ -2,8 +2,11 @@
 import Layout from "../layouts/Layout.astro";
 import MainSidebar from "../components/MainSidebar.astro";
 import { getRoomByCode } from "../lib/db";
+import { getPresentationById } from "../lib/db";
 import { RoomView } from "../components/solid/RoomView";
+import { PresentationViewer } from "../components/solid/PresentationViewer";
 import { redirectTo404 } from "../lib/util";
+import { optionalLocalsUser } from "../lib/auth";
 
 const code = Astro.url.searchParams.get("code");
 
@@ -20,12 +23,45 @@ if (err) {
 }
 
 const room = roomData;
+
+// Check if this is a presentation room
+let presentation = null;
+if (room.presentationId) {
+    // For public presentations, we need to check if it's public or if user owns it
+    const user = optionalLocalsUser(Astro.locals);
+    const [pres, presErr] = await getPresentationById(
+        user?.id || "anonymous",
+        room.presentationId.toString(),
+    );
+    if (!presErr && pres) {
+        presentation = pres;
+    } else {
+        // Try as anonymous user to see if presentation is public
+        const [presPublic, presPublicErr] = await getPresentationById(
+            "anonymous",
+            room.presentationId.toString(),
+        );
+        if (!presPublicErr && presPublic) {
+            presentation = presPublic;
+        }
+    }
+}
 ---
 
 <Layout class="flex min-h-screen overflow-hidden">
-    <MainSidebar wide>
-        <main class="flex h-full min-h-0 w-full overflow-hidden">
-            <RoomView room={room} client:only="solid-js" />
-        </main>
-    </MainSidebar>
+    {
+        presentation ? (
+            <PresentationViewer
+                room={room}
+                presentation={presentation}
+                client:only="solid-js"
+            />
+        ) : (
+            <MainSidebar wide>
+                <main class="flex h-full min-h-0 w-full overflow-hidden">
+                    <RoomView room={room} client:only="solid-js" />
+                </main>
+            </MainSidebar>
+        )
+    }
 </Layout>

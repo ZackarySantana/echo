@@ -169,6 +169,7 @@ function generateRoomCode(): string {
 
 export const createRoom = async (
     userId?: string | null,
+    presentationId?: number | null,
 ): Promise<Or<Room, Response>> => {
     // Use "anonymous" if no user ID provided
     const creatorId = userId || "anonymous";
@@ -187,6 +188,7 @@ export const createRoom = async (
                     code,
                     createdBy: creatorId,
                     ownerId: ownerId,
+                    presentationId: presentationId || null,
                     hidden: false,
                 })
                 .returning()
@@ -235,6 +237,27 @@ export const hideRoom = async (
         .update(roomsTable)
         .set({
             hidden: true,
+            updatedAt: sql`now()`,
+        })
+        .where(eq(roomsTable.code, code.toUpperCase()))
+        .returning()
+        .execute();
+
+    if (rooms.length === 0) {
+        return [undefined, redirectTo404("Room not found.")];
+    }
+
+    return [rooms[0], undefined];
+};
+
+export const updateRoom = async (
+    code: string,
+    updates: Partial<Pick<Room, "currentSlideIndex">>,
+): Promise<Or<Room, Response>> => {
+    const rooms = await db
+        .update(roomsTable)
+        .set({
+            ...updates,
             updatedAt: sql`now()`,
         })
         .where(eq(roomsTable.code, code.toUpperCase()))

@@ -55,6 +55,8 @@ export const roomsTable = pgTable("rooms", {
     code: varchar({ length: 10 }).notNull().unique(),
     createdBy: varchar({ length: 255 }).notNull(),
     ownerId: varchar({ length: 255 }).notNull(),
+    presentationId: integer(), // Link to presentation if this is a presentation room
+    currentSlideIndex: integer(), // Current slide index for presentation rooms (1-based)
     hidden: boolean().notNull().default(false),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),

@@ -60,11 +60,41 @@ export function PresentationSidebar(props: { presentation: Presentation }) {
         return s && idx >= 0 && idx < s.length ? s[idx] : undefined;
     };
 
+    const startPresentation = async () => {
+        const pres = presentation();
+        if (!pres?.id) return;
+
+        try {
+            const response = await fetch(`/api/presentation/${pres.id}/present`, {
+                method: "POST",
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                window.location.href = `/join?code=${encodeURIComponent(data.roomCode)}`;
+            } else {
+                alert("Failed to start presentation. Please try again.");
+            }
+        } catch (error) {
+            console.error("Failed to start presentation:", error);
+            alert("Failed to start presentation. Please try again.");
+        }
+    };
+
     return (
         <>
             <h1 class="pl-3 text-xl font-semibold text-white">
                 {presentation()?.name}
             </h1>
+            
+            <div class="pl-3 mt-4">
+                <button
+                    onClick={startPresentation}
+                    class="w-full rounded-lg bg-bg-primary-btn-link text-text-primary-btn-link hover:bg-bg-primary-btn-link-hover px-4 py-2 font-semibold transition-colors cursor-pointer"
+                >
+                    Present
+                </button>
+            </div>
 
             <div class="pl-3">
                 <p class="text-md mt-2 font-medium text-gray-200">Slides</p>
