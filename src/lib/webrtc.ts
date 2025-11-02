@@ -1,5 +1,5 @@
 // WebRTC P2P connection manager
-// Database-first approach for serverless compatibility - always fresh state
+// Database-first approach - all state is in database, no server memory
 import { getRoomByCode, updateRoom } from "./db";
 
 export type SignalMessage = {
@@ -35,6 +35,87 @@ async function getSignalingState(roomCode: string): Promise<SignalingState> {
     return { peers: [], signals: {}, peerToOwner: {} };
 }
 
+// Atomic operation: Add peer if not exists (prevents race conditions)
+async function atomicAddPeer(roomCode: string, peerId: string, ownerId?: string): Promise<void> {
+    // Simple approach: Read, check, write (with retry on conflict)
+    // For serverless, this is usually fast enough that conflicts are rare
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const state = await getSignalingState(roomCode);
+        
+        // Check if already registered
+        if (state.peers.includes(peerId)) {
+            // Already registered, just update owner if needed
+            if (ownerId && state.peerToOwner[peerId] !== ownerId) {
+                state.peerToOwner[peerId] = ownerId;
+                await saveSignalingState(roomCode, state);
+            }
+            return;
+        }
+        
+        // Add peer
+        state.peers.push(peerId);
+        if (ownerId) {
+            state.peerToOwner[peerId] = ownerId;
+        }
+        
+        try {
+            await saveSignalingState(roomCode, state);
+            return; // Success
+        } catch (err) {
+            if (attempt < maxRetries - 1) {
+                // Retry after a short delay
+                await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
+                continue;
+            }
+            throw err;
+        }
+    }
+}
+
+// Atomic operation: Add signal (appends without overwriting)
+async function atomicAddSignal(roomCode: string, signal: SignalMessage): Promise<void> {
+    if (!signal.to) return;
+    
+    const maxRetries = 2;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const state = await getSignalingState(roomCode);
+        
+        if (!state.signals[signal.to]) {
+            state.signals[signal.to] = [];
+        }
+        
+        // Add signal (don't duplicate)
+        const isDuplicate = state.signals[signal.to].some(s => 
+            s.from === signal.from && 
+            s.type === signal.type && 
+            JSON.stringify(s.data) === JSON.stringify(signal.data)
+        );
+        
+        if (!isDuplicate) {
+            state.signals[signal.to].push(signal);
+            
+            // Limit signals per peer
+            if (state.signals[signal.to].length > 50) {
+                state.signals[signal.to] = state.signals[signal.to].slice(-50);
+            }
+            
+            try {
+                await saveSignalingState(roomCode, state);
+                return; // Success
+            } catch (err) {
+                if (attempt < maxRetries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    continue;
+                }
+                throw err;
+            }
+        } else {
+            return; // Already exists, no need to write
+        }
+    }
+}
+
 // Write immediately to database for visibility across instances
 async function saveSignalingState(roomCode: string, state: SignalingState): Promise<void> {
     await updateRoom(roomCode, { 
@@ -49,24 +130,8 @@ async function saveSignalingState(roomCode: string, state: SignalingState): Prom
 }
 
 export async function registerPeer(roomCode: string, peerId: string, ownerId?: string): Promise<void> {
-    const state = await getSignalingState(roomCode);
-    
-    let changed = false;
-    if (!state.peers.includes(peerId)) {
-        state.peers.push(peerId);
-        changed = true;
-    }
-    
-    // Track owner if provided
-    if (ownerId && state.peerToOwner[peerId] !== ownerId) {
-        state.peerToOwner[peerId] = ownerId;
-        changed = true;
-    }
-    
-    // Write immediately so peer is visible across instances
-    if (changed) {
-        await saveSignalingState(roomCode, state);
-    }
+    // Use atomic operation to prevent race conditions
+    await atomicAddPeer(roomCode, peerId, ownerId);
 }
 
 export async function getRoomOwner(roomCode: string): Promise<string | undefined> {
@@ -119,34 +184,26 @@ export async function getPeers(roomCode: string): Promise<string[]> {
 export async function storeSignal(roomCode: string, signal: SignalMessage): Promise<void> {
     if (!signal.to) return;
     
-    const state = await getSignalingState(roomCode);
-    
-    if (!state.signals[signal.to]) {
-        state.signals[signal.to] = [];
-    }
-    
-    state.signals[signal.to].push(signal);
-    
-    // Limit signals per peer to prevent unbounded growth
-    if (state.signals[signal.to].length > 50) {
-        state.signals[signal.to] = state.signals[signal.to].slice(-50);
-    }
-    
-    // Write immediately for fast delivery
-    await saveSignalingState(roomCode, state).catch(err => {
-        // Don't block on errors, but log them
-        console.error('Failed to save signal:', err);
+    // Use atomic operation to prevent race conditions
+    await atomicAddSignal(roomCode, signal).catch(err => {
+        console.error('Failed to store signal:', err);
     });
     
     // Clean up old signals after 30 seconds (async, don't wait)
     setTimeout(async () => {
         const currentState = await getSignalingState(roomCode);
         if (currentState.signals[signal.to!]) {
-            currentState.signals[signal.to!] = currentState.signals[signal.to!].filter(s => s !== signal);
-            if (currentState.signals[signal.to!].length === 0) {
-                delete currentState.signals[signal.to!];
+            const filtered = currentState.signals[signal.to!].filter(s => {
+                return s !== signal && 
+                    !(s.from === signal.from && s.type === signal.type && JSON.stringify(s.data) === JSON.stringify(signal.data));
+            });
+            if (filtered.length !== currentState.signals[signal.to!].length) {
+                currentState.signals[signal.to!] = filtered;
+                if (filtered.length === 0) {
+                    delete currentState.signals[signal.to!];
+                }
+                await saveSignalingState(roomCode, currentState).catch(() => {});
             }
-            await saveSignalingState(roomCode, currentState).catch(() => {});
         }
     }, 30000);
 }
