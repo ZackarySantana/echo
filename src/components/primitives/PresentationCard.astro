@@ -2,6 +2,53 @@
 import Play from "@lucide/astro/icons/play";
 import CirclePlus from "@lucide/astro/icons/circle-plus";
 
+// Array of mild gradients for presentations
+const gradients = [
+    "bg-gradient-to-br from-slate-600 to-slate-800",
+    "bg-gradient-to-br from-zinc-600 to-zinc-800",
+    "bg-gradient-to-br from-neutral-600 to-neutral-800",
+    "bg-gradient-to-br from-stone-600 to-stone-800",
+    "bg-gradient-to-br from-gray-600 to-gray-800",
+    "bg-gradient-to-br from-blue-600 to-blue-800",
+    "bg-gradient-to-br from-indigo-600 to-indigo-800",
+    "bg-gradient-to-br from-violet-600 to-violet-800",
+    "bg-gradient-to-br from-purple-600 to-purple-800",
+    "bg-gradient-to-br from-fuchsia-600 to-fuchsia-800",
+    "bg-gradient-to-br from-pink-600 to-pink-800",
+    "bg-gradient-to-br from-rose-600 to-rose-800",
+    "bg-gradient-to-br from-red-600 to-red-800",
+    "bg-gradient-to-br from-orange-600 to-orange-800",
+    "bg-gradient-to-br from-amber-600 to-amber-800",
+    "bg-gradient-to-br from-yellow-600 to-yellow-800",
+    "bg-gradient-to-br from-lime-600 to-lime-800",
+    "bg-gradient-to-br from-green-600 to-green-800",
+    "bg-gradient-to-br from-emerald-600 to-emerald-800",
+    "bg-gradient-to-br from-teal-600 to-teal-800",
+    "bg-gradient-to-br from-cyan-600 to-cyan-800",
+    "bg-gradient-to-br from-sky-600 to-sky-800",
+];
+
+// Hash a string to a number for consistent gradient selection
+function hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+}
+
+// Get gradient for a presentation based on its title
+function getGradient(title?: string): string {
+    if (!title || title.trim().length === 0) {
+        return gradients[0];
+    }
+    // Normalize title: lowercase and trim for consistent hashing
+    const normalizedTitle = title.toLowerCase().trim();
+    const hash = hashString(normalizedTitle);
+    return gradients[hash % gradients.length];
+}
+
 interface Props {
     id?: string;
     updatedAt?: Date;
@@ -15,6 +62,8 @@ let href = "/create-presentation-ai";
 if (id) {
     href = `/presentation/${id}`;
 }
+
+const gradientClass = getGradient(title);
 ---
 
 <a
@@ -45,7 +94,7 @@ if (id) {
                         />
                     </div>
                 ) : (
-                    <div class="h-2/3 bg-linear-to-br from-blue-400 to-blue-700" />
+                    <div class={`h-2/3 ${gradientClass}`} />
                 )}
                 <div class="flex flex-1 flex-col justify-center px-6">
                     <h3 class="text-sm font-semibold text-white">
@@ -77,7 +126,7 @@ if (id) {
                     />
                 </div>
             ) : (
-                <div class="h-14 w-14 shrink-0 rounded-lg bg-linear-to-br from-blue-400 to-blue-700" />
+                <div class={`h-14 w-14 shrink-0 rounded-lg ${gradientClass}`} />
             )}
             <div class="min-w-0 flex-1">
                 <h3 class="truncate text-base font-semibold text-white">
