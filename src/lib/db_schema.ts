@@ -57,6 +57,7 @@ export const roomsTable = pgTable("rooms", {
     ownerId: varchar({ length: 255 }).notNull(),
     presentationId: integer(), // Link to presentation if this is a presentation room
     currentSlideIndex: integer(), // Current slide index for presentation rooms (1-based)
+    votes: json(), // Vote state: { pollId: { buttonId: count }, peerVotes: { pollId: { peerId: buttonId } } }
     hidden: boolean().notNull().default(false),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),

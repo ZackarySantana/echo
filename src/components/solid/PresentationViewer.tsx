@@ -59,6 +59,9 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
             setSlideIndex(savedIndex);
         }
         
+        // Load vote state from database
+        await loadVoteState();
+        
         // Register this peer
         await fetch('/api/signal', {
             method: 'POST',
@@ -97,6 +100,12 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
     });
 
     function cleanup() {
+        // Save vote state before cleanup
+        if (saveVotesTimeout !== null) {
+            clearTimeout(saveVotesTimeout);
+            saveVoteState();
+        }
+        
         // Clear all keepalive intervals
         keepaliveIntervals.forEach(interval => clearInterval(interval));
         keepaliveIntervals.clear();
@@ -305,15 +314,18 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
             }
             
             // Send current vote state to newly connected peer
-            const currentVotes = voteCounts();
-            const currentPeerVotes = peerVotes();
-            if (Object.keys(currentVotes).length > 0) {
-                channel.send(JSON.stringify({
-                    type: 'vote-state-sync',
-                    votes: currentVotes,
-                    peerVotes: currentPeerVotes,
-                }));
-            }
+            // Also load from database first to ensure we have the latest state
+            loadVoteState().then(() => {
+                const currentVotes = voteCounts();
+                const currentPeerVotes = peerVotes();
+                if (Object.keys(currentVotes).length > 0) {
+                    channel.send(JSON.stringify({
+                        type: 'vote-state-sync',
+                        votes: currentVotes,
+                        peerVotes: currentPeerVotes,
+                    }));
+                }
+            });
         };
 
         channel.onmessage = (event) => {
@@ -349,9 +361,11 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                     handleIncomingVote(message.pollId, message.buttonId, message.peerId);
                 } else if (message.type === 'vote-state-sync') {
                     // Receive full vote state from another peer (usually presenter)
+                    // Merge with existing state rather than replace to avoid losing local votes
                     if (message.votes && message.peerVotes) {
                         setVoteCounts(message.votes);
                         setPeerVotes(message.peerVotes);
+                        scheduleVoteSave();
                     }
                 }
             } catch (e) {
@@ -604,6 +618,52 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
         });
     }
     
+    let saveVotesTimeout: number | null = null;
+    
+    async function loadVoteState() {
+        try {
+            const response = await fetch(`/api/room/${props.room.code}/votes`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.votes && data.peerVotes) {
+                    setVoteCounts(data.votes);
+                    setPeerVotes(data.peerVotes);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load vote state:', error);
+        }
+    }
+    
+    async function saveVoteState() {
+        const currentVotes = voteCounts();
+        const currentPeerVotes = peerVotes();
+        
+        try {
+            await fetch(`/api/room/${props.room.code}/votes`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    votes: currentVotes,
+                    peerVotes: currentPeerVotes,
+                }),
+            });
+        } catch (error) {
+            console.error('Failed to save vote state:', error);
+        }
+    }
+    
+    function scheduleVoteSave() {
+        // Debounce saves to avoid too many database calls
+        if (saveVotesTimeout !== null) {
+            clearTimeout(saveVotesTimeout);
+        }
+        saveVotesTimeout = setTimeout(() => {
+            saveVoteState();
+            saveVotesTimeout = null;
+        }, 500) as unknown as number; // Save after 500ms of no changes
+    }
+    
     function handleVote(pollId: string, buttonId: string, voterPeerId: string, isLocalVote: boolean = false) {
         setVoteCounts(prev => {
             const newCounts = { ...prev };
@@ -652,6 +712,9 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
             newPeerVotes[pollId][voterPeerId] = buttonId;
             return newPeerVotes;
         });
+        
+        // Schedule save to database (debounced)
+        scheduleVoteSave();
     }
     
     function handleIncomingVote(pollId: string, buttonId: string, voterPeerId: string) {
