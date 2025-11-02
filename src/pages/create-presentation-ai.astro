@@ -5,8 +5,12 @@ import Text from "../components/primitives/Text.astro";
 import TextArea from "../components/primitives/TextArea.astro";
 import LinkButton from "../components/primitives/LinkButton.astro";
 import { getOptionalUser } from "../lib/db";
+import { localsUser } from "../lib/auth";
 
-const { user } = Astro.locals;
+const [user, resp] = localsUser(Astro.locals);
+if (resp) {
+    return resp;
+}
 
 const dbUserResp = await getOptionalUser(user.id);
 

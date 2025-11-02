@@ -1,9 +1,6 @@
 /// <reference types="astro/client" />
 
-import type {
-    CurrentServerUser,
-    CurrentInternalServerUser,
-} from "@stackframe/js";
+import type { TokenPartialUser } from "./token_partial_user";
 
 declare global {
     namespace App {

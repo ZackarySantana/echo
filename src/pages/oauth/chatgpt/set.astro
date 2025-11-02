@@ -1,8 +1,12 @@
 ---
+import { localsUser } from "../../../lib/auth";
 import { setChatGPTAPIKey } from "../../../lib/db";
 
 const key = Astro.url.searchParams.get("key");
-const { user } = Astro.locals;
+const [user, resp] = localsUser(Astro.locals);
+if (resp) {
+    return resp;
+}
 
 console.log("Key");
 console.log(key);

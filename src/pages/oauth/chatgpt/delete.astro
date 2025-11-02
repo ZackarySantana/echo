@@ -1,7 +1,11 @@
 ---
 import { setChatGPTAPIKey } from "../../../lib/db";
+import { localsUser } from "../../../lib/auth";
 
-const user = Astro.locals.user;
+const [user, resp] = localsUser(Astro.locals);
+if (resp) {
+    return resp;
+}
 
 await setChatGPTAPIKey(user.id, null);
 

@@ -7,9 +7,14 @@ import { getOptionalUser } from "../lib/db";
 import TextInput from "../components/primitives/TextInput.astro";
 import ExternalLink from "@lucide/astro/icons/external-link";
 import Link2Off from "@lucide/astro/icons/link-2-off";
+import { localsUser } from "../lib/auth";
 
 const error = Astro.url.searchParams.get("error");
-const { user } = Astro.locals;
+
+const [user, resp] = localsUser(Astro.locals);
+if (resp) {
+    return resp;
+}
 
 const redirect = `https://openrouter.ai/auth?callback_url=${Astro.url.origin}/oauth/openrouter/callback`;
 

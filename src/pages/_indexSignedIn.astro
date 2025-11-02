@@ -5,10 +5,13 @@ import LinkButton from "../components/primitives/LinkButton.astro";
 import TextInput from "../components/primitives/TextInput.astro";
 import MainSidebar from "../components/MainSidebar.astro";
 import ArrowRight from "@lucide/astro/icons/arrow-right";
-
 import { getPresentationsByUser } from "../lib/db.ts";
+import { localsUser } from "../lib/auth";
 
-const { user } = Astro.locals;
+const [user, resp] = localsUser(Astro.locals);
+if (resp) {
+    return resp;
+}
 
 // Get all projects for the signed in user
 const [projects, err] = await getPresentationsByUser(user.id);

@@ -1,8 +1,12 @@
 ---
+import { localsUser } from "../../../lib/auth";
 import { setOpenRouterAPIKey } from "../../../lib/db";
 
 const code = Astro.url.searchParams.get("code");
-const { user } = Astro.locals;
+const [user, resp] = localsUser(Astro.locals);
+if (resp) {
+    return resp;
+}
 
 if (!code) {
     return Astro.redirect("/404");

@@ -1,5 +1,6 @@
 import { eq, and, or } from "drizzle-orm";
 import { presentationsTable, usersTable, db } from "./db_schema";
+import { redirectTo404, type Or } from "./util";
 
 export type Presentation = typeof presentationsTable.$inferSelect;
 
@@ -88,11 +89,3 @@ export async function setChatGPTAPIKey(
             set: { chatGPTAPIKey: apiKey },
         });
 }
-
-type Or<T, U> = [T, undefined] | [undefined, U];
-
-export const redirectTo404 = () =>
-    new Response(null, {
-        status: 302,
-        headers: { Location: "/404" },
-    });

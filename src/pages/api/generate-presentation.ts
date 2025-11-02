@@ -1,7 +1,9 @@
 import type { APIRoute } from "astro";
-import { getOptionalUser, redirectTo404 } from "../../lib/db";
+import { getOptionalUser } from "../../lib/db";
+import { redirectTo404 } from "../../lib/util";
 import { SlideFormatSchema } from "../../lib/slides";
 import { z } from "zod";
+import { localsUser } from "../../lib/auth";
 
 const slideSystemContent = `You are an expert presentation creator. You focus on making presentations that are engaging, informative, and visually appealing. Your task is to create a presentation based on the topic provided by the user. The presentation should at least include a title slide, an introduction slide, several content slides, and a conclusion slide (if possible). Each slide should have a clear and concise title, bullet points or short paragraphs for content, and suggestions for relevant images or graphics to enhance the visual appeal of the presentation. You will ALWAYS return a presentation, even if it doesn't meet the exact conditions of this prompt. You should return only a JSON array of slide objects. Do not include anything other than the raw JSON. Do not include any block element tags. Only return a valid JSON array of slide objects, each in the following format:
 ${JSON.stringify(z.toJSONSchema(SlideFormatSchema))}`;
@@ -13,7 +15,12 @@ export const GET: APIRoute = async ({ request, url, locals }) => {
         return redirectTo404();
     }
 
-    const dbUserResp = await getOptionalUser(locals.user.id);
+    const [user, resp] = localsUser(locals);
+    if (resp) {
+        return resp;
+    }
+
+    const dbUserResp = await getOptionalUser(user.id);
     if (!dbUserResp) {
         return redirectTo404();
     }

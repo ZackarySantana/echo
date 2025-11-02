@@ -3,9 +3,13 @@ import Layout from "../../layouts/Layout.astro";
 import MainSidebar from "../../components/MainSidebar.astro";
 import { getPresentationById } from "../../lib/db";
 import { PresentationSidebar } from "../../components/solid/PresentationSidebar";
+import { localsUser } from "../../lib/auth";
 
 const { id } = Astro.params;
-const { user } = Astro.locals;
+const [user, resp] = localsUser(Astro.locals);
+if (resp) {
+    return resp;
+}
 
 const [presentation, err] = await getPresentationById(user.id, id ?? "NAN");
 if (err) {

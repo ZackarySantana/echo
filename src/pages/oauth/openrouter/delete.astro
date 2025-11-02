@@ -1,7 +1,11 @@
 ---
+import { localsUser } from "../../../lib/auth";
 import { setOpenRouterAPIKey } from "../../../lib/db";
 
-const user = Astro.locals.user;
+const [user, resp] = localsUser(Astro.locals);
+if (resp) {
+    return resp;
+}
 
 await setOpenRouterAPIKey(user.id, null);
 
