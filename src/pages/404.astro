@@ -2,14 +2,34 @@
 import Layout from "../layouts/Layout.astro";
 import Text from "../components/primitives/Text.astro";
 import Logo from "../components/Logo.astro";
+
+const error = Astro.url.searchParams.get("error");
+const warning = Astro.url.searchParams.get("warning");
 ---
 
-<Layout centerItems class="p-5">
+<Layout centerItems class="flex flex-col p-5">
     <Logo />
-    <Text type="subheading"
-        >Looks like this page doesn't exist. <a
-            href="/"
-            class="text-blue-400 underline hover:text-blue-500">Go back home</a
-        ></Text
-    >
+    {
+        error && (
+            <div class="w-full rounded-md bg-red-600/10 p-4 wrap-break-word text-red-400 sm:w-fit">
+                {decodeURIComponent(error)}
+            </div>
+        )
+    }
+
+    {
+        warning ||
+            (!error && (
+                <div class="w-full rounded-md bg-yellow-600/10 p-4 wrap-break-word text-yellow-400 sm:w-fit">
+                    {warning && decodeURIComponent(warning)}
+                    {!warning && "Looks like this page doesn't exist."}
+                </div>
+            ))
+    }
+    <Text type="subheading">
+        Please try again later.
+        <a href="/" class="text-blue-400 underline hover:text-blue-500">
+            Go back home
+        </a>
+    </Text>
 </Layout>
