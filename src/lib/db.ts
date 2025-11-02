@@ -252,7 +252,7 @@ export const hideRoom = async (
 
 export const updateRoom = async (
     code: string,
-    updates: Partial<Pick<Room, "currentSlideIndex" | "votes">>,
+    updates: Partial<Pick<Room, "currentSlideIndex" | "votes" | "signaling">>,
 ): Promise<Or<Room, Response>> => {
     const rooms = await db
         .update(roomsTable)

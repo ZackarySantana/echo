@@ -31,21 +31,21 @@ export const POST: APIRoute = async ({ request }) => {
             actualOwnerId = ownerId;
         } else if (roomOwnerId === "anonymous") {
             // For anonymous owners, check if this is the first peer
-            const peers = getPeers(roomCode);
+            const peers = await getPeers(roomCode);
             if (peers.length === 0) {
                 // First peer becomes the owner
                 actualOwnerId = "anonymous";
             }
         }
         
-        registerPeer(roomCode, peerId, actualOwnerId);
+        await registerPeer(roomCode, peerId, actualOwnerId);
         return new Response(JSON.stringify({ success: true }), {
             headers: { "Content-Type": "application/json" },
         });
     }
 
     if (action === 'unregister' && peerId) {
-        const { isOwner } = unregisterPeer(roomCode, peerId);
+        const { isOwner } = await unregisterPeer(roomCode, peerId, roomOwnerId || "");
         
         // If owner left, hide the room
         if (isOwner) {
@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (signal) {
-        storeSignal(roomCode, signal);
+        await storeSignal(roomCode, signal);
         return new Response(JSON.stringify({ success: true }), {
             headers: { "Content-Type": "application/json" },
         });
@@ -87,14 +87,14 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     if (listPeers) {
-        const peers = getPeers(roomCode);
+        const peers = await getPeers(roomCode);
         return new Response(JSON.stringify({ peers }), {
             headers: { "Content-Type": "application/json" },
         });
     }
 
     if (peerId) {
-        const signals = getSignals(roomCode, peerId);
+        const signals = await getSignals(roomCode, peerId);
         return new Response(JSON.stringify({ signals }), {
             headers: { "Content-Type": "application/json" },
         });
