@@ -1024,6 +1024,7 @@ export function PresentationViewer(props: {
                                 onClick={() => handleSlideNavigation("prev")}
                                 disabled={parseInt(slideIndex(), 10) <= 1}
                                 class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover flex cursor-pointer justify-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                style={{ "touch-action": "manipulation" }}
                             >
                                 <span class="hidden sm:block">←</span>
                                 Previous
@@ -1038,6 +1039,7 @@ export function PresentationViewer(props: {
                                     (slides()?.length || 0)
                                 }
                                 class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover flex cursor-pointer justify-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                style={{ "touch-action": "manipulation" }}
                             >
                                 Next
                                 <span class="hidden sm:block">→</span>
@@ -1059,7 +1061,10 @@ export function PresentationViewer(props: {
             </div>
 
             {/* Main slide area */}
-            <div class="bg-bg flex flex-1 items-center justify-center overflow-auto p-4">
+            <div 
+                class="bg-bg flex flex-1 items-center justify-center overflow-auto p-4"
+                style={{ "touch-action": "pan-x pan-y" }}
+            >
                 <Show
                     when={currentSlideData()}
                     keyed
