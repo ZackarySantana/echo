@@ -1,9 +1,15 @@
-import { createSignal, onMount, onCleanup, type Accessor } from "solid-js";
+import {
+    createSignal,
+    onMount,
+    onCleanup,
+    type Accessor,
+    type Setter,
+} from "solid-js";
 
 export function createQuery(
     key: string,
     defaultValue: string = "",
-): Accessor<string> {
+): [Accessor<string>, Setter<number>] {
     const [search, setSearch] = createSignal(
         new URLSearchParams(window.location.search),
     );
@@ -22,11 +28,22 @@ export function createQuery(
         window.removeEventListener("locationchange", update);
     });
 
-    return () => {
-        const value = search().get(key);
-        if (value === null || value == "") {
-            return defaultValue;
-        }
-        return value;
-    };
+    return [
+        () => {
+            const value = search().get(key);
+            if (value === null || value == "") {
+                return defaultValue;
+            }
+            return value;
+        },
+        (value: number | ((prev: number) => number)) => {
+            if (typeof value === "function") {
+                value = value(parseInt(search().get(key) || defaultValue));
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.set(key, value.toString());
+            window.history.pushState({}, "", url.toString());
+            setSearch(new URLSearchParams(url.search));
+        },
+    ];
 }
