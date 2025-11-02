@@ -37,6 +37,9 @@ export function PresentationViewer(props: {
     const [peerCount, setPeerCount] = createSignal(0);
     const [isPresenter, setIsPresenter] = createSignal(false);
 
+    // Copy button animation state
+    const [copied, setCopied] = createSignal(false);
+
     // Vote tracking state
     // Structure: voteCounts[pollId][buttonId] = count
     const [voteCounts, setVoteCounts] = createSignal<
@@ -1114,16 +1117,27 @@ export function PresentationViewer(props: {
                             onClick={(e) => e.currentTarget.select()}
                         />
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 if (typeof window !== "undefined") {
-                                    navigator.clipboard.writeText(
-                                        `${window.location.origin}/join?code=${encodeURIComponent(props.room.code)}`,
-                                    );
+                                    try {
+                                        await navigator.clipboard.writeText(
+                                            `${window.location.origin}/join?code=${encodeURIComponent(props.room.code)}`,
+                                        );
+                                        setCopied(true);
+                                        // Reset after 2 seconds
+                                        setTimeout(() => setCopied(false), 2000);
+                                    } catch (err) {
+                                        console.error("Failed to copy:", err);
+                                    }
                                 }
                             }}
-                            class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                            class={`rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                                copied()
+                                    ? "bg-green-600 text-white hover:bg-green-700"
+                                    : "bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover"
+                            }`}
                         >
-                            Copy
+                            {copied() ? "Copied!" : "Copy"}
                         </button>
                     </div>
                 </div>
