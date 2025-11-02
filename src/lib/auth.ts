@@ -10,3 +10,7 @@ export function localsUser(locals: App.Locals): Or<TokenPartialUser, Response> {
         redirectTo404(undefined, "Looks like you're not logged in."),
     ];
 }
+
+export function optionalLocalsUser(locals: App.Locals): TokenPartialUser | null {
+    return locals.user && locals.user.id ? locals.user : null;
+}

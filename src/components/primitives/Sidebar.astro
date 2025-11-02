@@ -9,9 +9,10 @@ import { cn } from "../../lib/cn";
 
 interface Props {
     wide?: boolean;
+    showSettings?: boolean;
 }
 
-const { wide = false } = Astro.props;
+const { wide = false, showSettings = true } = Astro.props;
 
 let widthClass = "sm:w-64";
 if (wide) {
@@ -36,13 +37,17 @@ if (wide) {
     <div class="flex-1 text-center">
         <slot name="title" />
     </div>
-    <div class="flex w-10 items-center justify-center">
-        <a href="/settings">
-            <SidebarItem class="p-3">
-                <Settings class="h-5 w-5" />
-            </SidebarItem>
-        </a>
-    </div>
+    {
+        showSettings && (
+            <div class="flex w-10 items-center justify-center">
+                <a href="/settings">
+                    <SidebarItem class="p-3">
+                        <Settings class="h-5 w-5" />
+                    </SidebarItem>
+                </a>
+            </div>
+        )
+    }
 </div>
 
 <!-- Sidebar content panel - slides in from left on mobile -->
@@ -60,13 +65,17 @@ if (wide) {
         <div class="flex-1 text-left">
             <slot name="title" />
         </div>
-        <div class="flex w-10 items-center justify-center">
-            <a href="/settings">
-                <SidebarItem class="p-3">
-                    <Settings class="h-5 w-5" />
-                </SidebarItem>
-            </a>
-        </div>
+        {
+            showSettings && (
+                <div class="flex w-10 items-center justify-center">
+                    <a href="/settings">
+                        <SidebarItem class="p-3">
+                            <Settings class="h-5 w-5" />
+                        </SidebarItem>
+                    </a>
+                </div>
+            )
+        }
     </div>
     <div class="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
         <slot />

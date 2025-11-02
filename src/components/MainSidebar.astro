@@ -2,18 +2,21 @@
 import LogOut from "@lucide/astro/icons/log-out";
 import Logo from "./Logo.astro";
 import Logout from "./primitives/Logout.astro";
+import SignIn from "./primitives/SignIn.astro";
 import SidebarItem from "./primitives/SidebarItem.astro";
 import Sidebar from "./primitives/Sidebar.astro";
+import GoogleSVG from "../assets/google.svg";
 
 interface Props {
     wide?: boolean;
 }
 
 const { wide = false } = Astro.props;
+const user = Astro.locals.publicPageUser;
 ---
 
 <div class="flex w-full">
-    <Sidebar {wide}>
+    <Sidebar {wide} showSettings={!!user}>
         <div
             slot="title"
             class="flex w-full items-center justify-center gap-2 sm:justify-start"
@@ -21,13 +24,23 @@ const { wide = false } = Astro.props;
             <Logo size="medium" />
         </div>
         <slot name="sidebar" />
-        <Logout slot="footer" class="w-full">
-            <SidebarItem>
-                <LogOut class="h-5 w-5 shrink-0" />
-
-                <span>Sign Out</span>
-            </SidebarItem>
-        </Logout>
+        {
+            user ? (
+                <Logout slot="footer" class="w-full">
+                    <SidebarItem>
+                        <LogOut class="h-5 w-5 shrink-0" />
+                        <span>Sign Out</span>
+                    </SidebarItem>
+                </Logout>
+            ) : (
+                <SignIn slot="footer" class="w-full">
+                    <SidebarItem>
+                        <GoogleSVG class="h-4 w-4 shrink-0" />
+                        <span>Sign In</span>
+                    </SidebarItem>
+                </SignIn>
+            )
+        }
     </Sidebar>
     <div class="w-full pt-18 sm:pt-6">
         <slot />

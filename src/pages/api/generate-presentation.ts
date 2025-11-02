@@ -1,12 +1,35 @@
 import type { APIRoute } from "astro";
 import { getOptionalUser, insertPresentation } from "../../lib/db";
 import { redirectTo404 } from "../../lib/util";
-import { SlideFormatSchema } from "../../lib/slides";
+import { SlideFormat2Schema } from "../../lib/slides2";
 import { z } from "zod";
 import { localsUser } from "../../lib/auth";
 
-const slideSystemContent = `You are an expert presentation creator. You focus on making presentations that are engaging, informative, and visually appealing. Your task is to create a presentation based on the topic provided by the user. The presentation should at least include a title slide, an introduction slide, several content slides, and a conclusion slide (if possible). Each slide should have a clear and concise title, bullet points or short paragraphs for content, and suggestions for relevant images or graphics to enhance the visual appeal of the presentation. Unless other instructions indicate, the average amount of slides will be around 10. You will ALWAYS return a presentation, even if it doesn't meet the exact conditions of this prompt. You should return only a JSON object with two fields, 'title', which is a title and 'slices', which is an array of slide objects. Do not include anything other than the raw JSON. Do not include any block element tags. Only return a valid JSON. The slide array has objects with the following schema:
-${JSON.stringify(z.toJSONSchema(SlideFormatSchema))}`;
+const slideSystemContent = `You are an expert presentation creator. You focus on making presentations that are engaging, informative, and visually appealing. Your task is to create a presentation based on the topic provided by the user. 
+
+The presentation should include:
+- A title slide (type: "title")
+- An introduction slide (type: "content" or "bullet")
+- Several content slides with bullet points, paragraphs, or images (types: "bullet", "content", "image")
+- A conclusion slide (type: "conclusion")
+
+Each slide should have a clear and concise title, appropriate content based on the slide type, and relevant visual elements when applicable. Use the slide type field to help structure your presentation logically. Unless other instructions indicate, the average amount of slides will be around 10-15.
+
+You will ALWAYS return a presentation, even if it doesn't meet the exact conditions of this prompt. You will return only a JSON object with two fields: 'title' (the presentation title) and 'slides' (an array of slide objects). Do not include anything other than the raw JSON. Do not include any block element tags. Only return a valid JSON.
+
+The slide array has objects with the following schema:
+${JSON.stringify(z.toJSONSchema(SlideFormat2Schema))}
+
+Important guidelines:
+- Use "title" type for the first slide
+- Use "bullet" type for slides with key points
+- Use "content" type for slides with paragraph-style content
+- Use "image" type when an image is the main focus
+- Use "comparison" type for compare/contrast slides
+- Use "conclusion" type for the final slide
+- Make sure each slide's content matches its type
+- Include appropriate bullet points or paragraphs based on the slide type
+- Suggest relevant images with descriptions when appropriate`;
 
 // This creates a presentation from the topic given in the search params.
 export const GET: APIRoute = async ({ url, locals }) => {
@@ -54,19 +77,21 @@ export const GET: APIRoute = async ({ url, locals }) => {
         );
     }
 
-    let parsedSlides = z.array(SlideFormatSchema).safeParse(slides);
-    if (!parsedSlides.success) {
+    let parsedSlides2 = z.array(SlideFormat2Schema).safeParse(slides);
+    if (!parsedSlides2.success) {
         return redirectTo404(
-            "Failed to generate valid presentation. Please try again.",
+            `Failed to generate valid presentation: ${parsedSlides2.error.message}`,
         );
     }
 
-    // we create a presentation object and set it's slides json column to the slides.
+    // we create a presentation object and set it's slides2 json column to the new slides.
+    // Keep slides empty array to maintain compatibility with existing code
     const [presentation, presentationInsertErr] = await insertPresentation({
         name: title,
         ownerId: user.id,
         creatorId: user.id,
-        slides: parsedSlides.data,
+        slides: [], // Empty array to maintain compatibility
+        slides2: parsedSlides2.data, // New improved slides format
     });
     if (presentationInsertErr) {
         return presentationInsertErr;

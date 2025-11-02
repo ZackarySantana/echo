@@ -34,6 +34,7 @@ export const presentationsTable = pgTable("presentations", {
     public: boolean().notNull().default(false),
 
     slides: json().notNull(),
+    slides2: json(),
 
     likes: integer().notNull().default(0),
 
@@ -47,4 +48,14 @@ export const usersTable = pgTable("users", {
 
     openRouterAPIKey: varchar({ length: 255 }),
     chatGPTAPIKey: varchar({ length: 255 }),
+});
+
+export const roomsTable = pgTable("rooms", {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    code: varchar({ length: 10 }).notNull().unique(),
+    createdBy: varchar({ length: 255 }).notNull(),
+    ownerId: varchar({ length: 255 }).notNull(),
+    hidden: boolean().notNull().default(false),
+    createdAt: timestamp().notNull().defaultNow(),
+    updatedAt: timestamp().notNull().defaultNow(),
 });

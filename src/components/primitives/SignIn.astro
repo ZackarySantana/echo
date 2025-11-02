@@ -1,0 +1,36 @@
+---
+import { cn } from "../../lib/cn";
+import GoogleSVG from "../../assets/google.svg";
+
+interface Props {
+    class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+---
+
+<button class={cn("signin-button cursor-pointer", className)}>
+    <slot />
+</button>
+
+<script>
+    import { stackClientApp } from "../../scripts/stack-client.ts";
+
+    document.querySelectorAll(".signin-button").forEach((button) => {
+        button.addEventListener("click", async () => {
+            button.classList.add("cursor-wait", "opacity-50");
+            button.classList.remove("cursor-pointer");
+            button.setAttribute("aria-disabled", "true");
+
+            try {
+                await stackClientApp.signInWithOAuth("google");
+            } catch (error) {
+                console.error("Sign in failed:", error);
+                button.classList.remove("cursor-wait", "opacity-50");
+                button.classList.add("cursor-pointer");
+                button.removeAttribute("aria-disabled");
+                alert("Failed to sign in. Please try again.");
+            }
+        });
+    });
+</script>

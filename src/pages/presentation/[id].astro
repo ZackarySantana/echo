@@ -3,6 +3,8 @@ import Layout from "../../layouts/Layout.astro";
 import MainSidebar from "../../components/MainSidebar.astro";
 import { getPresentationById } from "../../lib/db";
 import { PresentationSidebar } from "../../components/solid/PresentationSidebar";
+import { SlideViewWrapper } from "../../components/solid/SlideViewWrapper";
+import { SlideProperties } from "../../components/solid/SlideProperties";
 import { localsUser } from "../../lib/auth";
 
 const { id } = Astro.params;
@@ -17,7 +19,7 @@ if (err) {
 }
 ---
 
-<Layout class="flex">
+<Layout class="flex min-h-screen overflow-hidden">
     <MainSidebar wide>
         <PresentationSidebar
             presentation={presentation}
@@ -41,6 +43,17 @@ if (err) {
 
         The layout should be responsive, on smaller screens the sidebars should be collapsible or hidden.
         -->
-        <main class="flex w-full"></main>
+        <main class="flex h-full w-full min-h-0 overflow-hidden">
+            <!-- Main slide area -->
+            <div class="flex flex-1 min-w-0 items-center justify-center overflow-auto bg-bg">
+                <SlideViewWrapper presentation={presentation} client:only="solid-js" />
+            </div>
+
+            <!-- Right sidebar with properties -->
+            <SlideProperties
+                presentation={presentation}
+                client:only="solid-js"
+            />
+        </main>
     </MainSidebar>
 </Layout>

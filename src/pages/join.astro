@@ -1,0 +1,31 @@
+---
+import Layout from "../layouts/Layout.astro";
+import MainSidebar from "../components/MainSidebar.astro";
+import { getRoomByCode } from "../lib/db";
+import { RoomView } from "../components/solid/RoomView";
+import { redirectTo404 } from "../lib/util";
+
+const code = Astro.url.searchParams.get("code");
+
+// If no code provided, redirect to 404
+if (!code) {
+    return redirectTo404("Invalid code");
+}
+
+// Try to get room by code
+const [roomData, err] = await getRoomByCode(code);
+if (err) {
+    // Room not found, redirect to 404 with error
+    return redirectTo404("Invalid code");
+}
+
+const room = roomData;
+---
+
+<Layout class="flex min-h-screen overflow-hidden">
+    <MainSidebar wide>
+        <main class="flex h-full min-h-0 w-full overflow-hidden">
+            <RoomView room={room} client:only="solid-js" />
+        </main>
+    </MainSidebar>
+</Layout>

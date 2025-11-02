@@ -37,9 +37,9 @@ export function createShared<T = any>(
 
             return [data, setData, refresh];
         });
-    } else if (initial != null && w[key].data() == null) {
+    } else if (initial != null && w[key][0]() == null) {
         // seed once from SSR in whichever island mounts first
-        w[key].setData(initial);
+        w[key][1](initial);
     }
 
     return w[key] as [Accessor<T | null>, Setter<T | null>, Refresh];

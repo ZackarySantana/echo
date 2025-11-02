@@ -5,7 +5,10 @@ import LinkButton from "../components/primitives/LinkButton.astro";
 import TextInput from "../components/primitives/TextInput.astro";
 import MainSidebar from "../components/MainSidebar.astro";
 import ArrowRight from "@lucide/astro/icons/arrow-right";
-import { getPresentationsByUser } from "../lib/db.ts";
+import {
+    getPresentationsByUser,
+    getPublicPresentationsByLikes,
+} from "../lib/db.ts";
 import { localsUser } from "../lib/auth";
 
 const [user, resp] = localsUser(Astro.locals);
@@ -17,6 +20,13 @@ if (resp) {
 const [projects, err] = await getPresentationsByUser(user.id);
 if (err) {
     return err;
+}
+
+// Get public presentations sorted by likes (fetch all, we'll show/hide client-side)
+const [communityPresentations, communityErr] =
+    await getPublicPresentationsByLikes();
+if (communityErr) {
+    return communityErr;
 }
 ---
 
@@ -85,33 +95,175 @@ if (err) {
             />
         </div>
         <hr class="mt-4 w-full border-zinc-800" />
-        <div
-            class="flex w-full flex-col gap-3 pt-5 sm:grid sm:grid-cols-3 sm:flex-row sm:gap-5"
-        >
-            {
-                projects
-                    .sort(
-                        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
-                    )
-                    .slice(0, 2)
-                    .map((project) => (
-                        <PresentationCard
-                            id={project.id.toString()}
-                            title={project.name}
-                            subtitle={`Updated ${project.updatedAt.toLocaleTimeString()} ${project.updatedAt.toLocaleDateString()}`}
-                            image={project.imageLink ?? undefined}
-                        />
-                    ))
-            }
+        {
+            projects.length === 0 ? (
+                <p class="pt-5 text-center text-sm text-gray-400">
+                    Looks like your presentation folder is emptier than my
+                    motivation on Monday mornings! 🎭
+                </p>
+            ) : (
+                <div
+                    id="my-presentations"
+                    class="flex w-full flex-col gap-3 pt-5 sm:grid sm:grid-cols-3 sm:flex-row sm:gap-5"
+                >
+                    {projects
+                        .sort(
+                            (a, b) =>
+                                b.updatedAt.getTime() - a.updatedAt.getTime(),
+                        )
+                        .map((project, index) => (
+                            <div
+                                class={index >= 2 ? "hidden" : ""}
+                                data-presentation-index={index}
+                                data-presentation-title={project.name.toLowerCase()}
+                            >
+                                <PresentationCard
+                                    id={project.id.toString()}
+                                    title={project.name}
+                                    subtitle={`Updated ${project.updatedAt.toLocaleTimeString()} ${project.updatedAt.toLocaleDateString()}`}
+                                    image={project.imageLink ?? undefined}
+                                />
+                            </div>
+                        ))}
 
-            <PresentationCard skeleton />
-        </div>
-        <a
-            href="/my-presentation"
-            class="mt-5 hidden text-sm text-blue-400 transition-all hover:underline sm:inline-block"
-        >
-            View all
-        </a>
+                    <PresentationCard skeleton />
+                </div>
+            )
+        }
+        {
+            projects.length > 0 && (
+                <button
+                    id="view-all-button"
+                    class="mt-5 hidden cursor-pointer text-sm text-blue-400 transition-all hover:underline sm:inline-block"
+                    data-expanded="false"
+                >
+                    View all
+                </button>
+            )
+        }
+        <script>
+            {
+                const myPresentationsSection =
+                    document.getElementById("my-presentations");
+                const viewAllButton =
+                    document.getElementById("view-all-button");
+                const searchInput = document.getElementById(
+                    "search-my-presentations",
+                ) as HTMLInputElement | null;
+
+                if (!searchInput) {
+                    // Exit early if search input doesn't exist
+                } else {
+                    const isExpanded = () =>
+                        viewAllButton?.dataset.expanded === "true";
+                    let isSearching = false;
+
+                    const updateButtonVisibility = () => {
+                        if (!myPresentationsSection || !viewAllButton) return;
+
+                        const presentations = Array.from(
+                            myPresentationsSection.querySelectorAll(
+                                "[data-presentation-index]",
+                            ),
+                        ).filter(
+                            (p) => !p.classList.contains("hidden"),
+                        ) as HTMLElement[];
+
+                        // Show button if there are more than 2 visible presentations
+                        if (presentations.length > 2) {
+                            viewAllButton.classList.remove("hidden");
+                        } else {
+                            viewAllButton.classList.add("hidden");
+                        }
+                    };
+
+                    const filterPresentations = (query: string) => {
+                        if (!myPresentationsSection) return;
+
+                        isSearching = query.trim().length > 0;
+                        const searchTerm = query.trim().toLowerCase();
+                        const presentations =
+                            myPresentationsSection.querySelectorAll(
+                                "[data-presentation-index]",
+                            ) as NodeListOf<HTMLElement>;
+
+                        presentations.forEach((presentation) => {
+                            const title =
+                                presentation.dataset.presentationTitle || "";
+                            const matches = title.includes(searchTerm);
+
+                            if (isSearching) {
+                                // When searching, show all matches, hide non-matches
+                                if (matches) {
+                                    presentation.classList.remove("hidden");
+                                } else {
+                                    presentation.classList.add("hidden");
+                                }
+                            } else {
+                                // When not searching, restore default view (first 2 visible)
+                                const index = parseInt(
+                                    presentation.dataset.presentationIndex ||
+                                        "0",
+                                );
+                                if (index >= 2) {
+                                    presentation.classList.add("hidden");
+                                } else {
+                                    presentation.classList.remove("hidden");
+                                }
+                            }
+                        });
+
+                        // Reset button state when searching
+                        if (isSearching && viewAllButton) {
+                            viewAllButton.dataset.expanded = "false";
+                            viewAllButton.textContent = "View all";
+                        }
+
+                        updateButtonVisibility();
+                    };
+
+                    if (myPresentationsSection && viewAllButton) {
+                        updateButtonVisibility();
+                    }
+
+                    // Search functionality
+                    searchInput.addEventListener("input", (e) => {
+                        const query = (e.target as HTMLInputElement).value;
+                        filterPresentations(query);
+                    });
+
+                    // View all/less button
+                    if (viewAllButton && myPresentationsSection) {
+                        viewAllButton.addEventListener("click", (e) => {
+                            e.preventDefault();
+                            if (isSearching) return; // Disable button when searching
+
+                            const expanded = isExpanded();
+                            const presentations =
+                                myPresentationsSection.querySelectorAll(
+                                    "[data-presentation-index]",
+                                );
+
+                            presentations.forEach((presentation, index) => {
+                                if (index >= 2) {
+                                    if (expanded) {
+                                        presentation.classList.add("hidden");
+                                    } else {
+                                        presentation.classList.remove("hidden");
+                                    }
+                                }
+                            });
+
+                            viewAllButton.dataset.expanded =
+                                (!expanded).toString();
+                            viewAllButton.textContent = expanded
+                                ? "View all"
+                                : "View less";
+                        });
+                    }
+                }
+            }
+        </script>
 
         <div class="mt-10 flex w-full items-center justify-between">
             <Text type="heading" class="text-2xl sm:text-3xl">Community</Text>
@@ -128,18 +280,168 @@ if (err) {
             />
         </div>
         <hr class="mt-4 w-full border-zinc-800" />
-        <div
-            class="flex w-full flex-col gap-3 pt-5 sm:grid sm:grid-cols-3 sm:flex-row sm:gap-5"
-        >
-            <PresentationCard id="testing" title="React" />
-            <PresentationCard id="testing2" title="Firebase" />
-            <PresentationCard id="testing3" title="How to present 101" />
-        </div>
-        <a
-            href="/my-presentation"
-            class="mt-5 hidden text-sm text-blue-400 transition-all hover:underline sm:inline-block"
-        >
-            Explore more
-        </a>
+        {
+            communityPresentations.length === 0 ? (
+                <p class="pt-5 text-center text-sm text-gray-400">
+                    The community is quieter than a library during finals week!
+                    Be the first to share something awesome! 🚀
+                </p>
+            ) : (
+                <div
+                    id="community-presentations"
+                    class="flex w-full flex-col gap-3 pt-5 sm:grid sm:grid-cols-3 sm:flex-row sm:gap-5"
+                >
+                    {communityPresentations.map((presentation, index) => (
+                        <div
+                            class={index >= 3 ? "hidden" : ""}
+                            data-presentation-index={index}
+                            data-presentation-title={presentation.name.toLowerCase()}
+                        >
+                            <PresentationCard
+                                id={presentation.id.toString()}
+                                title={presentation.name}
+                                subtitle={`${presentation.likes} like${presentation.likes !== 1 ? "s" : ""}`}
+                                image={presentation.imageLink ?? undefined}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )
+        }
+        {
+            communityPresentations.length > 0 && (
+                <button
+                    id="explore-more-button"
+                    class="mt-5 hidden cursor-pointer text-sm text-blue-400 transition-all hover:underline sm:inline-block"
+                    data-expanded="false"
+                >
+                    Explore more
+                </button>
+            )
+        }
+        <script>
+            {
+                const communitySection = document.getElementById(
+                    "community-presentations",
+                );
+                const exploreButton = document.getElementById(
+                    "explore-more-button",
+                );
+                const searchInput = document.getElementById(
+                    "search-community-presentations",
+                ) as HTMLInputElement | null;
+
+                if (!searchInput) {
+                    // Exit early if search input doesn't exist
+                } else {
+                    const isExpanded = () =>
+                        exploreButton?.dataset.expanded === "true";
+                    let isSearching = false;
+
+                    const updateButtonVisibility = () => {
+                        if (!communitySection || !exploreButton) return;
+
+                        const presentations = Array.from(
+                            communitySection.querySelectorAll(
+                                "[data-presentation-index]",
+                            ),
+                        ).filter(
+                            (p) => !p.classList.contains("hidden"),
+                        ) as HTMLElement[];
+
+                        // Show button if there are more than 3 visible presentations
+                        if (presentations.length > 3) {
+                            exploreButton.classList.remove("hidden");
+                        } else {
+                            exploreButton.classList.add("hidden");
+                        }
+                    };
+
+                    const filterPresentations = (query: string) => {
+                        if (!communitySection) return;
+
+                        isSearching = query.trim().length > 0;
+                        const searchTerm = query.trim().toLowerCase();
+                        const presentations = communitySection.querySelectorAll(
+                            "[data-presentation-index]",
+                        ) as NodeListOf<HTMLElement>;
+
+                        presentations.forEach((presentation) => {
+                            const title =
+                                presentation.dataset.presentationTitle || "";
+                            const matches = title.includes(searchTerm);
+
+                            if (isSearching) {
+                                // When searching, show all matches, hide non-matches
+                                if (matches) {
+                                    presentation.classList.remove("hidden");
+                                } else {
+                                    presentation.classList.add("hidden");
+                                }
+                            } else {
+                                // When not searching, restore default view (first 3 visible)
+                                const index = parseInt(
+                                    presentation.dataset.presentationIndex ||
+                                        "0",
+                                );
+                                if (index >= 3) {
+                                    presentation.classList.add("hidden");
+                                } else {
+                                    presentation.classList.remove("hidden");
+                                }
+                            }
+                        });
+
+                        // Reset button state when searching
+                        if (isSearching && exploreButton) {
+                            exploreButton.dataset.expanded = "false";
+                            exploreButton.textContent = "Explore more";
+                        }
+
+                        updateButtonVisibility();
+                    };
+
+                    if (communitySection && exploreButton) {
+                        updateButtonVisibility();
+                    }
+
+                    // Search functionality
+                    searchInput.addEventListener("input", (e) => {
+                        const query = (e.target as HTMLInputElement).value;
+                        filterPresentations(query);
+                    });
+
+                    // Explore more/less button
+                    if (exploreButton && communitySection) {
+                        exploreButton.addEventListener("click", (e) => {
+                            e.preventDefault();
+                            if (isSearching) return; // Disable button when searching
+
+                            const expanded = isExpanded();
+                            const presentations =
+                                communitySection.querySelectorAll(
+                                    "[data-presentation-index]",
+                                );
+
+                            presentations.forEach((presentation, index) => {
+                                if (index >= 3) {
+                                    if (expanded) {
+                                        presentation.classList.add("hidden");
+                                    } else {
+                                        presentation.classList.remove("hidden");
+                                    }
+                                }
+                            });
+
+                            exploreButton.dataset.expanded =
+                                (!expanded).toString();
+                            exploreButton.textContent = expanded
+                                ? "Explore more"
+                                : "Explore less";
+                        });
+                    }
+                }
+            }
+        </script>
     </main>
 </MainSidebar>
