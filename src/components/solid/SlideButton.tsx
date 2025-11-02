@@ -4,6 +4,7 @@ interface Props {
     button: Button;
     poll?: Poll;
     scale?: number;
+    voteCount?: number;
     onClick?: (button: Button, poll?: Poll) => void;
 }
 
@@ -32,6 +33,11 @@ export function SlideButton(props: Props) {
             data-metadata={JSON.stringify(props.button.metadata || {})}
         >
             {props.button.text}
+            {props.voteCount !== undefined && props.voteCount > 0 && (
+                <span class="ml-2 rounded-full bg-blue-500 px-2 py-0.5 text-xs font-semibold">
+                    {props.voteCount}
+                </span>
+            )}
         </button>
     );
 }

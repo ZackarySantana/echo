@@ -19,6 +19,12 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
     const [peerCount, setPeerCount] = createSignal(0);
     const [isPresenter, setIsPresenter] = createSignal(false);
     
+    // Vote tracking state
+    // Structure: voteCounts[pollId][buttonId] = count
+    const [voteCounts, setVoteCounts] = createSignal<Record<string, Record<string, number>>>({});
+    // Track which button each peer voted for: peerVotes[pollId][peerId] = buttonId
+    const [peerVotes, setPeerVotes] = createSignal<Record<string, Record<string, string>>>({});
+    
     let peerId: string;
     let dataChannels: Map<string, RTCDataChannel> = new Map();
     let peerConnections: Map<string, RTCPeerConnection> = new Map();
@@ -297,6 +303,17 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                     }));
                 }
             }
+            
+            // Send current vote state to newly connected peer
+            const currentVotes = voteCounts();
+            const currentPeerVotes = peerVotes();
+            if (Object.keys(currentVotes).length > 0) {
+                channel.send(JSON.stringify({
+                    type: 'vote-state-sync',
+                    votes: currentVotes,
+                    peerVotes: currentPeerVotes,
+                }));
+            }
         };
 
         channel.onmessage = (event) => {
@@ -328,8 +345,14 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                         setSlideIndex(newIndex);
                     }
                 } else if (message.type === 'poll-vote') {
-                    // Handle poll votes (can be implemented later for vote tracking)
-                    console.log('Poll vote received:', message);
+                    // Handle poll vote
+                    handleIncomingVote(message.pollId, message.buttonId, message.peerId);
+                } else if (message.type === 'vote-state-sync') {
+                    // Receive full vote state from another peer (usually presenter)
+                    if (message.votes && message.peerVotes) {
+                        setVoteCounts(message.votes);
+                        setPeerVotes(message.peerVotes);
+                    }
                 }
             } catch (e) {
                 console.error('Error parsing message:', e);
@@ -563,6 +586,9 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
     }
 
     function handleButtonClick(buttonId: string, pollId: string) {
+        // Update local vote state first
+        handleVote(pollId, buttonId, peerId, true);
+        
         // Send vote to all peers
         const message = {
             type: 'poll-vote',
@@ -576,8 +602,77 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                 channel.send(JSON.stringify(message));
             }
         });
+    }
+    
+    function handleVote(pollId: string, buttonId: string, voterPeerId: string, isLocalVote: boolean = false) {
+        setVoteCounts(prev => {
+            const newCounts = { ...prev };
+            const peerVotesState = peerVotes();
+            
+            // Check if this peer already voted for a different button in this poll
+            const existingVote = peerVotesState[pollId]?.[voterPeerId];
+            
+            if (existingVote && existingVote !== buttonId) {
+                // Peer changed their vote - decrement old button, increment new button
+                if (!newCounts[pollId]) {
+                    newCounts[pollId] = {};
+                }
+                if (!newCounts[pollId][existingVote]) {
+                    newCounts[pollId][existingVote] = 0;
+                }
+                if (!newCounts[pollId][buttonId]) {
+                    newCounts[pollId][buttonId] = 0;
+                }
+                
+                // Decrement old vote (but don't go below 0)
+                newCounts[pollId][existingVote] = Math.max(0, newCounts[pollId][existingVote] - 1);
+                // Increment new vote
+                newCounts[pollId][buttonId] = (newCounts[pollId][buttonId] || 0) + 1;
+            } else if (!existingVote) {
+                // New vote
+                if (!newCounts[pollId]) {
+                    newCounts[pollId] = {};
+                }
+                if (!newCounts[pollId][buttonId]) {
+                    newCounts[pollId][buttonId] = 0;
+                }
+                newCounts[pollId][buttonId] = (newCounts[pollId][buttonId] || 0) + 1;
+            }
+            // If existingVote === buttonId, peer clicked the same button again - ignore (or implement toggle if desired)
+            
+            return newCounts;
+        });
         
-        // TODO: Track votes and update poll displays
+        // Update peer votes tracking
+        setPeerVotes(prev => {
+            const newPeerVotes = { ...prev };
+            if (!newPeerVotes[pollId]) {
+                newPeerVotes[pollId] = {};
+            }
+            newPeerVotes[pollId][voterPeerId] = buttonId;
+            return newPeerVotes;
+        });
+    }
+    
+    function handleIncomingVote(pollId: string, buttonId: string, voterPeerId: string) {
+        // Only update if this vote is from another peer
+        if (voterPeerId !== peerId) {
+            handleVote(pollId, buttonId, voterPeerId, false);
+        }
+    }
+    
+    // Helper to get vote count for a specific button
+    function getVoteCount(pollId: string, buttonId: string): number {
+        const counts = voteCounts();
+        return counts[pollId]?.[buttonId] || 0;
+    }
+    
+    // Helper to get total votes for a poll
+    function getTotalPollVotes(pollId: string): number {
+        const counts = voteCounts();
+        const pollCounts = counts[pollId];
+        if (!pollCounts) return 0;
+        return Object.values(pollCounts).reduce((sum, count) => sum + count, 0);
     }
 
     // Get presentation-level style
@@ -738,6 +833,8 @@ export function PresentationViewer(props: { room: Room; presentation: Presentati
                             className="shadow-2xl"
                             presentationStyle={presentationStyle()}
                             onButtonClick={handleButtonClick}
+                            getVoteCount={getVoteCount}
+                            getTotalPollVotes={getTotalPollVotes}
                         />
                     )}
                 </Show>

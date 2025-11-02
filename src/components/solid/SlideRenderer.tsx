@@ -128,6 +128,8 @@ interface SlideRendererProps {
     className?: string;
     onButtonClick?: (buttonId: string, pollId: string) => void;
     presentationStyle?: { backgroundColor?: string; textColor?: string } | null;
+    getVoteCount?: (pollId: string, buttonId: string) => number;
+    getTotalPollVotes?: (pollId: string) => number;
 }
 
 export function SlideRenderer(props: SlideRendererProps) {
@@ -408,16 +410,23 @@ export function SlideRenderer(props: SlideRendererProps) {
                         "padding-bottom": `${contentPadding}px`,
                     }}>
                         <For each={buttons()}>
-                            {(button) => {
+                            {(button, getIndex) => {
                                 const poll = getPollById(button.pollId);
+                                // Create unique button identifier: pollId:index
+                                // Using index to ensure uniqueness even if button texts are duplicated
+                                const buttonId = `${button.pollId}:${getIndex()}`;
+                                const voteCount = props.getVoteCount 
+                                    ? props.getVoteCount(button.pollId, buttonId) 
+                                    : 0;
                                 return (
                                     <SlideButton
                                         button={button}
                                         poll={poll}
                                         scale={scale}
+                                        voteCount={voteCount}
                                         onClick={(btn, p) => {
                                             if (props.onButtonClick) {
-                                                props.onButtonClick(button.pollId, button.pollId);
+                                                props.onButtonClick(buttonId, button.pollId);
                                             }
                                         }}
                                     />
@@ -431,6 +440,9 @@ export function SlideRenderer(props: SlideRendererProps) {
                 <For each={polls()}>
                     {(poll) => {
                         if (poll.type === "accumulator" && poll.displayOnSlide) {
+                            const totalVotes = props.getTotalPollVotes 
+                                ? props.getTotalPollVotes(poll.id) 
+                                : 0;
                             return (
                                 <div
                                     class="absolute top-4 right-4 rounded-lg bg-blue-100 px-3 py-2 text-blue-800"
@@ -438,8 +450,7 @@ export function SlideRenderer(props: SlideRendererProps) {
                                         "font-size": `${14 * scale}px`,
                                     }}
                                 >
-                                    {/* TODO: Integrate with vote tracking system */}
-                                    Votes: 0
+                                    Votes: {totalVotes}
                                 </div>
                             );
                         }
