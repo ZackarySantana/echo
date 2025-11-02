@@ -1,6 +1,17 @@
 import { createSignal, For, Show } from "solid-js";
-import type { SlideFormat, SlideFormatEnum, Poll, Button, PollType, PollActionType } from "../../lib/slides";
-import { createShared, PRESENTATION, useSharedSlides } from "./primitives/createShared";
+import type {
+    SlideFormat,
+    SlideFormatEnum,
+    Poll,
+    Button,
+    PollType,
+    PollActionType,
+} from "../../lib/slides";
+import {
+    createShared,
+    PRESENTATION,
+    useSharedSlides,
+} from "./primitives/createShared";
 import type { Presentation } from "../../lib/db";
 import { createQuery } from "./primitives/createQuery";
 
@@ -10,7 +21,7 @@ export function SlideProperties(props: { presentation: Presentation }) {
         PRESENTATION,
         props.presentation,
     );
-    
+
     // Use shared slides to ensure consistency with other components
     const slides = useSharedSlides();
     const currentSlideIndex = () => parseInt(slideIndex(), 10) - 1;
@@ -78,13 +89,13 @@ export function SlideProperties(props: { presentation: Presentation }) {
 
         const idx = currentSlideIndex();
         const updated = slidesArr.filter((_, i) => i !== idx);
-        
+
         const newPresentation = {
             ...presentation()!,
             slides: updated,
         };
         setPresentation(newPresentation);
-        
+
         // Navigate to a different slide if we deleted the current one
         if (idx >= updated.length) {
             setSlideIndex(updated.length);
@@ -141,7 +152,7 @@ export function SlideProperties(props: { presentation: Presentation }) {
     const updatePresentationProperty = (updates: Partial<Presentation>) => {
         const pres = presentation();
         if (!pres) return;
-        
+
         const newPresentation = {
             ...pres,
             ...updates,
@@ -183,48 +194,55 @@ export function SlideProperties(props: { presentation: Presentation }) {
     const slide = () => currentSlide();
 
     return (
-        <div class="h-full w-80 overflow-y-auto overflow-x-hidden bg-bg-sidebar border-l border-border-sidebar p-6 text-bg-text" style="height: 100%;">
+        <div
+            class="bg-bg-sidebar border-border-sidebar text-bg-text hidden h-full w-80 overflow-x-hidden overflow-y-auto border-l p-6 sm:block"
+            style="height: 100%;"
+        >
             <div class="mb-8 space-y-3">
                 <h2 class="text-lg font-semibold">Presentation Settings</h2>
-                
+
                 {/* Presentation Name */}
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-bg-text">
+                    <label class="text-bg-text mb-2 block text-sm font-medium">
                         Presentation Name
                     </label>
                     <input
                         type="text"
                         value={presentation()?.name || ""}
                         onInput={(e) =>
-                            updatePresentationProperty({ name: e.currentTarget.value })
+                            updatePresentationProperty({
+                                name: e.currentTarget.value,
+                            })
                         }
-                        class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                        class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                     />
                 </div>
 
                 {/* Public Toggle */}
-                <div class="flex items-center justify-between rounded-lg border border-border-sidebar bg-bg-card p-3">
+                <div class="border-border-sidebar bg-bg-card flex items-center justify-between rounded-lg border p-3">
                     <div>
-                        <label class="text-sm font-medium text-bg-text">
+                        <label class="text-bg-text text-sm font-medium">
                             Make Public
                         </label>
-                        <p class="text-xs text-gray-500 mt-0.5">
+                        <p class="mt-0.5 text-xs text-gray-500">
                             Allow others to view this presentation
                         </p>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
+                    <label class="relative inline-flex cursor-pointer items-center">
                         <input
                             type="checkbox"
                             checked={presentation()?.public || false}
                             onChange={(e) =>
-                                updatePresentationProperty({ public: e.currentTarget.checked })
+                                updatePresentationProperty({
+                                    public: e.currentTarget.checked,
+                                })
                             }
-                            class="sr-only peer"
+                            class="peer sr-only"
                         />
-                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="peer h-6 w-11 rounded-full bg-gray-700 peer-checked:bg-blue-600 peer-focus:ring-2 peer-focus:ring-blue-500 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                     </label>
                 </div>
-                
+
                 {/* Save button */}
                 <button
                     onClick={savePresentation}
@@ -233,41 +251,45 @@ export function SlideProperties(props: { presentation: Presentation }) {
                         saving()
                             ? "bg-bg-secondary-btn-link text-text-secondary-btn-link cursor-not-allowed opacity-50"
                             : saved()
-                            ? "bg-green-600 hover:bg-green-700 text-white cursor-pointer"
-                            : "bg-bg-primary-btn-link text-text-primary-btn-link hover:bg-bg-primary-btn-link-hover cursor-pointer"
+                              ? "cursor-pointer bg-green-600 text-white hover:bg-green-700"
+                              : "bg-bg-primary-btn-link text-text-primary-btn-link hover:bg-bg-primary-btn-link-hover cursor-pointer"
                     }`}
                 >
-                    {saving() ? "Saving..." : saved() ? "Saved!" : "Save Presentation"}
+                    {saving()
+                        ? "Saving..."
+                        : saved()
+                          ? "Saved!"
+                          : "Save Presentation"}
                 </button>
 
                 {/* Slide management buttons */}
                 <div class="grid grid-cols-2 gap-2">
                     <button
                         onClick={addSlide}
-                        class="rounded-lg bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+                        class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                     >
                         + Add Slide
                     </button>
                     <button
                         onClick={duplicateSlide}
                         disabled={!slide()}
-                        class="rounded-lg bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+                        class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         Duplicate
                     </button>
                 </div>
-                
+
                 <button
                     onClick={deleteSlide}
                     disabled={!slide() || (slides()?.length || 0) <= 1}
-                    class="w-full rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-white transition-colors cursor-pointer"
+                    class="w-full cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Delete Slide
                 </button>
             </div>
 
             <div class="mb-8">
-                <h2 class="text-lg font-semibold mb-4">Slide Properties</h2>
+                <h2 class="mb-4 text-lg font-semibold">Slide Properties</h2>
             </div>
 
             <Show when={slide()}>
@@ -276,32 +298,39 @@ export function SlideProperties(props: { presentation: Presentation }) {
                         {/* Slide Title */}
                         <div class="mb-6 space-y-5">
                             <div>
-                                <label class="mb-2 block text-sm font-medium text-bg-text">
+                                <label class="text-bg-text mb-2 block text-sm font-medium">
                                     Slide Title
                                 </label>
                                 <input
                                     type="text"
                                     value={s().title}
                                     onInput={(e) =>
-                                        updateSlide({ title: e.currentTarget.value })
+                                        updateSlide({
+                                            title: e.currentTarget.value,
+                                        })
                                     }
-                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 focus:outline-none"
                                 />
                             </div>
 
                             {/* Slide Format */}
                             <div>
-                                <label class="mb-2 block text-sm font-medium text-bg-text">
+                                <label class="text-bg-text mb-2 block text-sm font-medium">
                                     Slide Format
                                 </label>
                                 <select
                                     value={s().format}
                                     onChange={(e) => {
-                                        const newFormat = e.currentTarget.value as SlideFormatEnum;
+                                        const newFormat = e.currentTarget
+                                            .value as SlideFormatEnum;
                                         // Don't change format if it's the same
                                         if (newFormat === s().format) return;
-                                        
-                                        if (!confirm("Changing format will reset the slide content. Continue?")) {
+
+                                        if (
+                                            !confirm(
+                                                "Changing format will reset the slide content. Continue?",
+                                            )
+                                        ) {
                                             return;
                                         }
 
@@ -309,35 +338,60 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                         let newContent: SlideFormat["content"];
                                         switch (newFormat) {
                                             case "title-only":
-                                                newContent = { polls: [], buttons: [] };
+                                                newContent = {
+                                                    polls: [],
+                                                    buttons: [],
+                                                };
                                                 break;
                                             case "title-subtitle":
-                                                newContent = { subtitle: "Subtitle", polls: [], buttons: [] };
+                                                newContent = {
+                                                    subtitle: "Subtitle",
+                                                    polls: [],
+                                                    buttons: [],
+                                                };
                                                 break;
                                             case "title-bullets":
-                                                newContent = { bullets: ["Bullet point 1"], polls: [], buttons: [] };
+                                                newContent = {
+                                                    bullets: ["Bullet point 1"],
+                                                    polls: [],
+                                                    buttons: [],
+                                                };
                                                 break;
                                             case "title-paragraph":
-                                                newContent = { paragraph: "Enter your paragraph text here.", polls: [], buttons: [] };
+                                                newContent = {
+                                                    paragraph:
+                                                        "Enter your paragraph text here.",
+                                                    polls: [],
+                                                    buttons: [],
+                                                };
                                                 break;
                                             case "title-2columns":
-                                                newContent = { leftColumn: "Left column", rightColumn: "Right column", polls: [], buttons: [] };
+                                                newContent = {
+                                                    leftColumn: "Left column",
+                                                    rightColumn: "Right column",
+                                                    polls: [],
+                                                    buttons: [],
+                                                };
                                                 break;
                                             case "title-image":
-                                                newContent = { 
-                                                    image: { description: "Image description", position: "center" },
+                                                newContent = {
+                                                    image: {
+                                                        description:
+                                                            "Image description",
+                                                        position: "center",
+                                                    },
                                                     polls: [],
-                                                    buttons: []
+                                                    buttons: [],
                                                 };
                                                 break;
                                             case "comparison":
-                                                newContent = { 
-                                                    leftTitle: "Left", 
+                                                newContent = {
+                                                    leftTitle: "Left",
                                                     leftItems: ["Item 1"],
                                                     rightTitle: "Right",
                                                     rightItems: ["Item 1"],
                                                     polls: [],
-                                                    buttons: []
+                                                    buttons: [],
                                                 };
                                                 break;
                                         }
@@ -350,71 +404,96 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                             content: newContent,
                                         } as SlideFormat);
                                     }}
-                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 focus:outline-none"
                                 >
-                                    <option value="title-only">Title Only</option>
-                                    <option value="title-subtitle">Title + Subtitle</option>
-                                    <option value="title-bullets">Title + Bullets</option>
-                                    <option value="title-paragraph">Title + Paragraph</option>
-                                    <option value="title-2columns">Title + 2 Columns</option>
-                                    <option value="title-image">Title + Image</option>
-                                    <option value="comparison">Comparison</option>
+                                    <option value="title-only">
+                                        Title Only
+                                    </option>
+                                    <option value="title-subtitle">
+                                        Title + Subtitle
+                                    </option>
+                                    <option value="title-bullets">
+                                        Title + Bullets
+                                    </option>
+                                    <option value="title-paragraph">
+                                        Title + Paragraph
+                                    </option>
+                                    <option value="title-2columns">
+                                        Title + 2 Columns
+                                    </option>
+                                    <option value="title-image">
+                                        Title + Image
+                                    </option>
+                                    <option value="comparison">
+                                        Comparison
+                                    </option>
                                 </select>
                             </div>
 
                             {/* Style Properties */}
                             <div>
-                                <label class="mb-2 block text-sm font-medium text-bg-text">
+                                <label class="text-bg-text mb-2 block text-sm font-medium">
                                     Background Color
                                 </label>
                                 <input
                                     type="color"
-                                    value={s().style?.backgroundColor || "#1a1d24"}
-                                    onInput={(e) =>
-                                        updateStyle({ backgroundColor: e.currentTarget.value })
+                                    value={
+                                        s().style?.backgroundColor || "#1a1d24"
                                     }
-                                    class="h-10 w-full cursor-pointer rounded-lg border border-border-sidebar bg-bg-input"
+                                    onInput={(e) =>
+                                        updateStyle({
+                                            backgroundColor:
+                                                e.currentTarget.value,
+                                        })
+                                    }
+                                    class="border-border-sidebar bg-bg-input h-10 w-full cursor-pointer rounded-lg border"
                                 />
                             </div>
 
                             <div>
-                                <label class="mb-2 block text-sm font-medium text-bg-text">
+                                <label class="text-bg-text mb-2 block text-sm font-medium">
                                     Text Color
                                 </label>
                                 <input
                                     type="color"
                                     value={s().style?.textColor || "#ffffff"}
                                     onInput={(e) =>
-                                        updateStyle({ textColor: e.currentTarget.value })
+                                        updateStyle({
+                                            textColor: e.currentTarget.value,
+                                        })
                                     }
-                                    class="h-10 w-full cursor-pointer rounded-lg border border-border-sidebar bg-bg-input"
+                                    class="border-border-sidebar bg-bg-input h-10 w-full cursor-pointer rounded-lg border"
                                 />
                             </div>
                         </div>
 
                         {/* Format-specific content editing */}
                         <div class="mb-6 space-y-5">
-                            <h3 class="text-md font-semibold text-bg-text">Content</h3>
+                            <h3 class="text-md text-bg-text font-semibold">
+                                Content
+                            </h3>
 
                             <Show when={s().format === "title-subtitle"}>
                                 <div>
-                                    <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                    <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                         Subtitle
                                     </label>
                                     <input
                                         type="text"
                                         value={s().content.subtitle}
                                         onInput={(e) =>
-                                            updateContent({ subtitle: e.currentTarget.value })
+                                            updateContent({
+                                                subtitle: e.currentTarget.value,
+                                            })
                                         }
-                                        class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                        class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                     />
                                 </div>
                             </Show>
 
                             <Show when={s().format === "title-bullets"}>
                                 <div>
-                                    <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                    <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                         Bullet Points
                                     </label>
                                     <For each={s().content.bullets}>
@@ -424,19 +503,34 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                                     type="text"
                                                     value={bullet}
                                                     onInput={(e) => {
-                                                        const bullets = [...s().content.bullets];
-                                                        bullets[i()] = e.currentTarget.value;
-                                                        updateContent({ bullets });
+                                                        const bullets = [
+                                                            ...s().content
+                                                                .bullets,
+                                                        ];
+                                                        bullets[i()] =
+                                                            e.currentTarget.value;
+                                                        updateContent({
+                                                            bullets,
+                                                        });
                                                     }}
-                                                    class="flex-1 rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                                 />
                                                 <button
                                                     onClick={() => {
-                                                        const bullets = s().content.bullets.filter((_, idx) => idx !== i());
-                                                        if (bullets.length === 0) bullets.push("");
-                                                        updateContent({ bullets });
+                                                        const bullets =
+                                                            s().content.bullets.filter(
+                                                                (_, idx) =>
+                                                                    idx !== i(),
+                                                            );
+                                                        if (
+                                                            bullets.length === 0
+                                                        )
+                                                            bullets.push("");
+                                                        updateContent({
+                                                            bullets,
+                                                        });
                                                     }}
-                                                    class="rounded-lg bg-red-600 hover:bg-red-700 px-3 py-2 text-sm text-white transition-colors cursor-pointer"
+                                                    class="cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm text-white transition-colors hover:bg-red-700"
                                                 >
                                                     ×
                                                 </button>
@@ -445,12 +539,21 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                     </For>
                                     <button
                                         onClick={() => {
-                                            if (s().content.bullets.length < 7) {
-                                                updateContent({ bullets: [...s().content.bullets, ""] });
+                                            if (
+                                                s().content.bullets.length < 7
+                                            ) {
+                                                updateContent({
+                                                    bullets: [
+                                                        ...s().content.bullets,
+                                                        "",
+                                                    ],
+                                                });
                                             }
                                         }}
-                                        disabled={s().content.bullets.length >= 7}
-                                        class="mt-2 rounded-lg bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+                                        disabled={
+                                            s().content.bullets.length >= 7
+                                        }
+                                        class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover mt-2 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         + Add Bullet
                                     </button>
@@ -459,15 +562,18 @@ export function SlideProperties(props: { presentation: Presentation }) {
 
                             <Show when={s().format === "title-paragraph"}>
                                 <div>
-                                    <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                    <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                         Paragraph
                                     </label>
                                     <textarea
                                         value={s().content.paragraph}
                                         onInput={(e) =>
-                                            updateContent({ paragraph: e.currentTarget.value })
+                                            updateContent({
+                                                paragraph:
+                                                    e.currentTarget.value,
+                                            })
                                         }
-                                        class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                        class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                         rows={6}
                                     />
                                 </div>
@@ -476,28 +582,34 @@ export function SlideProperties(props: { presentation: Presentation }) {
                             <Show when={s().format === "title-2columns"}>
                                 <div class="space-y-3">
                                     <div>
-                                        <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                        <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                             Left Column
                                         </label>
                                         <textarea
                                             value={s().content.leftColumn}
                                             onInput={(e) =>
-                                                updateContent({ leftColumn: e.currentTarget.value })
+                                                updateContent({
+                                                    leftColumn:
+                                                        e.currentTarget.value,
+                                                })
                                             }
-                                            class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                            class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                             rows={4}
                                         />
                                     </div>
                                     <div>
-                                        <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                        <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                             Right Column
                                         </label>
                                         <textarea
                                             value={s().content.rightColumn}
                                             onInput={(e) =>
-                                                updateContent({ rightColumn: e.currentTarget.value })
+                                                updateContent({
+                                                    rightColumn:
+                                                        e.currentTarget.value,
+                                                })
                                             }
-                                            class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                            class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                             rows={4}
                                         />
                                     </div>
@@ -507,20 +619,23 @@ export function SlideProperties(props: { presentation: Presentation }) {
                             <Show when={s().format === "comparison"}>
                                 <div class="space-y-3">
                                     <div>
-                                        <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                        <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                             Left Title
                                         </label>
                                         <input
                                             type="text"
                                             value={s().content.leftTitle}
                                             onInput={(e) =>
-                                                updateContent({ leftTitle: e.currentTarget.value })
+                                                updateContent({
+                                                    leftTitle:
+                                                        e.currentTarget.value,
+                                                })
                                             }
-                                            class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                            class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                        <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                             Left Items
                                         </label>
                                         <For each={s().content.leftItems}>
@@ -530,19 +645,38 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                                         type="text"
                                                         value={item}
                                                         onInput={(e) => {
-                                                            const items = [...s().content.leftItems];
-                                                            items[i()] = e.currentTarget.value;
-                                                            updateContent({ leftItems: items });
+                                                            const items = [
+                                                                ...s().content
+                                                                    .leftItems,
+                                                            ];
+                                                            items[i()] =
+                                                                e.currentTarget.value;
+                                                            updateContent({
+                                                                leftItems:
+                                                                    items,
+                                                            });
                                                         }}
-                                                        class="flex-1 rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                        class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                                     />
                                                     <button
                                                         onClick={() => {
-                                                            const items = s().content.leftItems.filter((_, idx) => idx !== i());
-                                                            if (items.length === 0) items.push("");
-                                                            updateContent({ leftItems: items });
+                                                            const items =
+                                                                s().content.leftItems.filter(
+                                                                    (_, idx) =>
+                                                                        idx !==
+                                                                        i(),
+                                                                );
+                                                            if (
+                                                                items.length ===
+                                                                0
+                                                            )
+                                                                items.push("");
+                                                            updateContent({
+                                                                leftItems:
+                                                                    items,
+                                                            });
                                                         }}
-                                                        class="rounded-lg bg-red-600 hover:bg-red-700 px-3 py-2 text-sm text-white transition-colors cursor-pointer"
+                                                        class="cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm text-white transition-colors hover:bg-red-700"
                                                     >
                                                         ×
                                                     </button>
@@ -551,31 +685,46 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                         </For>
                                         <button
                                             onClick={() => {
-                                                if (s().content.leftItems.length < 5) {
-                                                    updateContent({ leftItems: [...s().content.leftItems, ""] });
+                                                if (
+                                                    s().content.leftItems
+                                                        .length < 5
+                                                ) {
+                                                    updateContent({
+                                                        leftItems: [
+                                                            ...s().content
+                                                                .leftItems,
+                                                            "",
+                                                        ],
+                                                    });
                                                 }
                                             }}
-                                            disabled={s().content.leftItems.length >= 5}
-                                            class="mt-2 rounded-lg bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+                                            disabled={
+                                                s().content.leftItems.length >=
+                                                5
+                                            }
+                                            class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover mt-2 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             + Add Left Item
                                         </button>
                                     </div>
                                     <div>
-                                        <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                        <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                             Right Title
                                         </label>
                                         <input
                                             type="text"
                                             value={s().content.rightTitle}
                                             onInput={(e) =>
-                                                updateContent({ rightTitle: e.currentTarget.value })
+                                                updateContent({
+                                                    rightTitle:
+                                                        e.currentTarget.value,
+                                                })
                                             }
-                                            class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                            class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                        <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                             Right Items
                                         </label>
                                         <For each={s().content.rightItems}>
@@ -585,19 +734,38 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                                         type="text"
                                                         value={item}
                                                         onInput={(e) => {
-                                                            const items = [...s().content.rightItems];
-                                                            items[i()] = e.currentTarget.value;
-                                                            updateContent({ rightItems: items });
+                                                            const items = [
+                                                                ...s().content
+                                                                    .rightItems,
+                                                            ];
+                                                            items[i()] =
+                                                                e.currentTarget.value;
+                                                            updateContent({
+                                                                rightItems:
+                                                                    items,
+                                                            });
                                                         }}
-                                                        class="flex-1 rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                        class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                                     />
                                                     <button
                                                         onClick={() => {
-                                                            const items = s().content.rightItems.filter((_, idx) => idx !== i());
-                                                            if (items.length === 0) items.push("");
-                                                            updateContent({ rightItems: items });
+                                                            const items =
+                                                                s().content.rightItems.filter(
+                                                                    (_, idx) =>
+                                                                        idx !==
+                                                                        i(),
+                                                                );
+                                                            if (
+                                                                items.length ===
+                                                                0
+                                                            )
+                                                                items.push("");
+                                                            updateContent({
+                                                                rightItems:
+                                                                    items,
+                                                            });
                                                         }}
-                                                        class="rounded-lg bg-red-600 hover:bg-red-700 px-3 py-2 text-sm text-white transition-colors cursor-pointer"
+                                                        class="cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm text-white transition-colors hover:bg-red-700"
                                                     >
                                                         ×
                                                     </button>
@@ -606,12 +774,24 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                         </For>
                                         <button
                                             onClick={() => {
-                                                if (s().content.rightItems.length < 5) {
-                                                    updateContent({ rightItems: [...s().content.rightItems, ""] });
+                                                if (
+                                                    s().content.rightItems
+                                                        .length < 5
+                                                ) {
+                                                    updateContent({
+                                                        rightItems: [
+                                                            ...s().content
+                                                                .rightItems,
+                                                            "",
+                                                        ],
+                                                    });
                                                 }
                                             }}
-                                            disabled={s().content.rightItems.length >= 5}
-                                            class="mt-2 rounded-lg bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+                                            disabled={
+                                                s().content.rightItems.length >=
+                                                5
+                                            }
+                                            class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover mt-2 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             + Add Right Item
                                         </button>
@@ -620,16 +800,18 @@ export function SlideProperties(props: { presentation: Presentation }) {
                             </Show>
 
                             {/* Image editing (for formats that support it) */}
-                            <Show when={
-                                s().format === "title-only" || 
-                                s().format === "title-subtitle" || 
-                                s().format === "title-bullets" || 
-                                s().format === "title-paragraph" || 
-                                s().format === "title-2columns" || 
-                                s().format === "comparison"
-                            }>
+                            <Show
+                                when={
+                                    s().format === "title-only" ||
+                                    s().format === "title-subtitle" ||
+                                    s().format === "title-bullets" ||
+                                    s().format === "title-paragraph" ||
+                                    s().format === "title-2columns" ||
+                                    s().format === "comparison"
+                                }
+                            >
                                 <div>
-                                    <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                    <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                         Image (Optional)
                                     </label>
                                     <Show when={s().content.image}>
@@ -640,51 +822,76 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                                     placeholder="Image description"
                                                     value={img().description}
                                                     onInput={(e) =>
-                                                        updateContent({ 
-                                                            image: { 
-                                                                ...img(), 
-                                                                description: e.currentTarget.value 
-                                                            } 
+                                                        updateContent({
+                                                            image: {
+                                                                ...img(),
+                                                                description:
+                                                                    e
+                                                                        .currentTarget
+                                                                        .value,
+                                                            },
                                                         })
                                                     }
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                                 />
                                                 <input
                                                     type="url"
                                                     placeholder="Image URL (optional)"
                                                     value={img().url || ""}
                                                     onInput={(e) =>
-                                                        updateContent({ 
-                                                            image: { 
-                                                                ...img(), 
-                                                                url: e.currentTarget.value || undefined 
-                                                            } 
+                                                        updateContent({
+                                                            image: {
+                                                                ...img(),
+                                                                url:
+                                                                    e
+                                                                        .currentTarget
+                                                                        .value ||
+                                                                    undefined,
+                                                            },
                                                         })
                                                     }
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                                 />
                                                 <select
                                                     value={img().position}
                                                     onChange={(e) =>
-                                                        updateContent({ 
-                                                            image: { 
-                                                                ...img(), 
-                                                                position: e.currentTarget.value as any
-                                                            } 
+                                                        updateContent({
+                                                            image: {
+                                                                ...img(),
+                                                                position: e
+                                                                    .currentTarget
+                                                                    .value as any,
+                                                            },
                                                         })
                                                     }
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                                 >
-                                                    <option value="left">Left</option>
-                                                    <option value="right">Right</option>
-                                                    <option value="center">Center</option>
-                                                    <option value="full">Full</option>
-                                                    <option value="top">Top</option>
-                                                    <option value="bottom">Bottom</option>
+                                                    <option value="left">
+                                                        Left
+                                                    </option>
+                                                    <option value="right">
+                                                        Right
+                                                    </option>
+                                                    <option value="center">
+                                                        Center
+                                                    </option>
+                                                    <option value="full">
+                                                        Full
+                                                    </option>
+                                                    <option value="top">
+                                                        Top
+                                                    </option>
+                                                    <option value="bottom">
+                                                        Bottom
+                                                    </option>
                                                 </select>
                                                 <button
-                                                    onClick={() => updateContent({ image: undefined })}
-                                                    class="w-full rounded-lg bg-red-600 hover:bg-red-700 px-3 py-2 text-sm text-white transition-colors cursor-pointer"
+                                                    onClick={() =>
+                                                        updateContent({
+                                                            image: undefined,
+                                                        })
+                                                    }
+                                                    class="w-full cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm text-white transition-colors hover:bg-red-700"
                                                 >
                                                     Remove Image
                                                 </button>
@@ -693,13 +900,16 @@ export function SlideProperties(props: { presentation: Presentation }) {
                                     </Show>
                                     <Show when={!s().content.image}>
                                         <button
-                                            onClick={() => updateContent({ 
-                                                image: { 
-                                                    description: "Image description", 
-                                                    position: "center" 
-                                                } 
-                                            })}
-                                            class="w-full rounded-lg bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+                                            onClick={() =>
+                                                updateContent({
+                                                    image: {
+                                                        description:
+                                                            "Image description",
+                                                        position: "center",
+                                                    },
+                                                })
+                                            }
+                                            class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover w-full cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                         >
                                             + Add Image
                                         </button>
@@ -710,70 +920,88 @@ export function SlideProperties(props: { presentation: Presentation }) {
                             {/* Image editing for title-image format (required) */}
                             <Show when={s().format === "title-image"}>
                                 <div>
-                                    <label class="mb-2 block text-sm font-medium text-bg-text opacity-70">
+                                    <label class="text-bg-text mb-2 block text-sm font-medium opacity-70">
                                         Image (Required)
                                     </label>
                                     <div class="space-y-2">
                                         <input
                                             type="text"
                                             placeholder="Image description"
-                                            value={s().content.image.description}
+                                            value={
+                                                s().content.image.description
+                                            }
                                             onInput={(e) =>
-                                                updateContent({ 
-                                                    image: { 
-                                                        ...s().content.image, 
-                                                        description: e.currentTarget.value 
-                                                    } 
+                                                updateContent({
+                                                    image: {
+                                                        ...s().content.image,
+                                                        description:
+                                                            e.currentTarget
+                                                                .value,
+                                                    },
                                                 })
                                             }
-                                            class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                            class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                         />
                                         <input
                                             type="url"
                                             placeholder="Image URL (optional)"
                                             value={s().content.image.url || ""}
                                             onInput={(e) =>
-                                                updateContent({ 
-                                                    image: { 
-                                                        ...s().content.image, 
-                                                        url: e.currentTarget.value || undefined 
-                                                    } 
+                                                updateContent({
+                                                    image: {
+                                                        ...s().content.image,
+                                                        url:
+                                                            e.currentTarget
+                                                                .value ||
+                                                            undefined,
+                                                    },
                                                 })
                                             }
-                                            class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                            class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                         />
                                         <select
                                             value={s().content.image.position}
                                             onChange={(e) =>
-                                                updateContent({ 
-                                                    image: { 
-                                                        ...s().content.image, 
-                                                        position: e.currentTarget.value as any
-                                                    } 
+                                                updateContent({
+                                                    image: {
+                                                        ...s().content.image,
+                                                        position: e
+                                                            .currentTarget
+                                                            .value as any,
+                                                    },
                                                 })
                                             }
-                                            class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                            class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                         >
                                             <option value="left">Left</option>
                                             <option value="right">Right</option>
-                                            <option value="center">Center</option>
+                                            <option value="center">
+                                                Center
+                                            </option>
                                             <option value="full">Full</option>
                                             <option value="top">Top</option>
-                                            <option value="bottom">Bottom</option>
+                                            <option value="bottom">
+                                                Bottom
+                                            </option>
                                         </select>
                                         <input
                                             type="text"
                                             placeholder="Image caption (optional)"
-                                            value={s().content.image.caption || ""}
+                                            value={
+                                                s().content.image.caption || ""
+                                            }
                                             onInput={(e) =>
-                                                updateContent({ 
-                                                    image: { 
-                                                        ...s().content.image, 
-                                                        caption: e.currentTarget.value || undefined 
-                                                    } 
+                                                updateContent({
+                                                    image: {
+                                                        ...s().content.image,
+                                                        caption:
+                                                            e.currentTarget
+                                                                .value ||
+                                                            undefined,
+                                                    },
                                                 })
                                             }
-                                            class="w-full rounded-lg border border-border-sidebar bg-bg-input px-3 py-2 text-sm text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                            class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -782,314 +1010,562 @@ export function SlideProperties(props: { presentation: Presentation }) {
                             {/* Polls Section */}
                             <div class="mb-6 space-y-3">
                                 <div class="flex items-center justify-between">
-                                    <h3 class="text-md font-semibold text-bg-text">Polls</h3>
+                                    <h3 class="text-md text-bg-text font-semibold">
+                                        Polls
+                                    </h3>
                                     <button
                                         onClick={() => {
-                                            const currentPolls = s().content.polls || [];
+                                            const currentPolls =
+                                                s().content.polls || [];
                                             if (currentPolls.length < 5) {
                                                 const newPollId = `poll-${Date.now()}`;
-                                                updateContent({ 
-                                                    polls: [...currentPolls, {
-                                                        id: newPollId,
-                                                        type: "accumulator" as PollType,
-                                                        displayOnSlide: false,
-                                                    }]
+                                                updateContent({
+                                                    polls: [
+                                                        ...currentPolls,
+                                                        {
+                                                            id: newPollId,
+                                                            type: "accumulator" as PollType,
+                                                            displayOnSlide: false,
+                                                        },
+                                                    ],
                                                 });
                                             }
                                         }}
-                                        disabled={(s().content.polls || []).length >= 5}
-                                        class="rounded-lg bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                                        disabled={
+                                            (s().content.polls || []).length >=
+                                            5
+                                        }
+                                        class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         + Add Poll
                                     </button>
                                 </div>
                                 <For each={s().content.polls || []}>
                                     {(poll, pollIdx) => (
-                                        <div class="rounded-lg border border-border-sidebar bg-bg-card p-3 space-y-2">
+                                        <div class="border-border-sidebar bg-bg-card space-y-2 rounded-lg border p-3">
                                             <div class="flex items-center justify-between">
-                                                <h4 class="text-sm font-medium text-bg-text">Poll #{pollIdx() + 1}</h4>
+                                                <h4 class="text-bg-text text-sm font-medium">
+                                                    Poll #{pollIdx() + 1}
+                                                </h4>
                                                 <button
                                                     onClick={() => {
-                                                        const polls = (s().content.polls || []).filter((_, idx) => idx !== pollIdx());
+                                                        const polls = (
+                                                            s().content.polls ||
+                                                            []
+                                                        ).filter(
+                                                            (_, idx) =>
+                                                                idx !==
+                                                                pollIdx(),
+                                                        );
                                                         // Also remove buttons that reference this poll
-                                                        const buttons = (s().content.buttons || []).filter(b => b.pollId !== poll.id);
-                                                        updateContent({ polls, buttons });
+                                                        const buttons = (
+                                                            s().content
+                                                                .buttons || []
+                                                        ).filter(
+                                                            (b) =>
+                                                                b.pollId !==
+                                                                poll.id,
+                                                        );
+                                                        updateContent({
+                                                            polls,
+                                                            buttons,
+                                                        });
                                                     }}
-                                                    class="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                                                    class="cursor-pointer text-xs text-red-400 transition-colors hover:text-red-300"
                                                 >
                                                     Delete
                                                 </button>
                                             </div>
                                             <div>
-                                                <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
+                                                <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
                                                     Poll ID
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={poll.id}
                                                     onInput={(e) => {
-                                                        const polls = [...(s().content.polls || [])];
-                                                        polls[pollIdx()] = { ...poll, id: e.currentTarget.value };
-                                                        updateContent({ polls });
+                                                        const polls = [
+                                                            ...(s().content
+                                                                .polls || []),
+                                                        ];
+                                                        polls[pollIdx()] = {
+                                                            ...poll,
+                                                            id: e.currentTarget
+                                                                .value,
+                                                        };
+                                                        updateContent({
+                                                            polls,
+                                                        });
                                                     }}
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                 />
                                             </div>
                                             <div>
-                                                <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
+                                                <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
                                                     Type
                                                 </label>
                                                 <select
-                                                    value={poll.type || "accumulator"}
+                                                    value={
+                                                        poll.type ||
+                                                        "accumulator"
+                                                    }
                                                     onChange={(e) => {
-                                                        const polls = [...(s().content.polls || [])];
-                                                        polls[pollIdx()] = { 
-                                                            ...poll, 
-                                                            type: e.currentTarget.value as PollType 
+                                                        const polls = [
+                                                            ...(s().content
+                                                                .polls || []),
+                                                        ];
+                                                        polls[pollIdx()] = {
+                                                            ...poll,
+                                                            type: e
+                                                                .currentTarget
+                                                                .value as PollType,
                                                         };
-                                                        updateContent({ polls });
+                                                        updateContent({
+                                                            polls,
+                                                        });
                                                     }}
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                 >
-                                                    <option value="accumulator">Accumulator</option>
-                                                    <option value="action-trigger">Action Trigger</option>
-                                                    <option value="choice">Choice</option>
-                                                    <option value="feedback">Feedback</option>
+                                                    <option value="accumulator">
+                                                        Accumulator
+                                                    </option>
+                                                    <option value="action-trigger">
+                                                        Action Trigger
+                                                    </option>
+                                                    <option value="choice">
+                                                        Choice
+                                                    </option>
+                                                    <option value="feedback">
+                                                        Feedback
+                                                    </option>
                                                 </select>
                                             </div>
                                             <div>
-                                                <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
+                                                <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
                                                     Question (Optional)
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={poll.question || ""}
                                                     onInput={(e) => {
-                                                        const polls = [...(s().content.polls || [])];
-                                                        polls[pollIdx()] = { 
-                                                            ...poll, 
-                                                            question: e.currentTarget.value || undefined 
+                                                        const polls = [
+                                                            ...(s().content
+                                                                .polls || []),
+                                                        ];
+                                                        polls[pollIdx()] = {
+                                                            ...poll,
+                                                            question:
+                                                                e.currentTarget
+                                                                    .value ||
+                                                                undefined,
                                                         };
-                                                        updateContent({ polls });
+                                                        updateContent({
+                                                            polls,
+                                                        });
                                                     }}
                                                     placeholder="Enter poll question"
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                 />
                                             </div>
-                                            <Show when={poll.type === "accumulator"}>
+                                            <Show
+                                                when={
+                                                    poll.type === "accumulator"
+                                                }
+                                            >
                                                 <div class="flex items-center gap-2">
                                                     <input
                                                         type="checkbox"
-                                                        checked={poll.displayOnSlide || false}
+                                                        checked={
+                                                            poll.displayOnSlide ||
+                                                            false
+                                                        }
                                                         onChange={(e) => {
-                                                            const polls = [...(s().content.polls || [])];
-                                                            polls[pollIdx()] = { 
-                                                                ...poll, 
-                                                                displayOnSlide: e.currentTarget.checked 
+                                                            const polls = [
+                                                                ...(s().content
+                                                                    .polls ||
+                                                                    []),
+                                                            ];
+                                                            polls[pollIdx()] = {
+                                                                ...poll,
+                                                                displayOnSlide:
+                                                                    e
+                                                                        .currentTarget
+                                                                        .checked,
                                                             };
-                                                            updateContent({ polls });
+                                                            updateContent({
+                                                                polls,
+                                                            });
                                                         }}
-                                                        class="rounded border-border-sidebar"
+                                                        class="border-border-sidebar rounded"
                                                     />
-                                                    <label class="text-xs text-bg-text opacity-70">
-                                                        Display vote count on slide
+                                                    <label class="text-bg-text text-xs opacity-70">
+                                                        Display vote count on
+                                                        slide
                                                     </label>
                                                 </div>
                                             </Show>
-                                            <Show when={poll.type === "action-trigger"}>
+                                            <Show
+                                                when={
+                                                    poll.type ===
+                                                    "action-trigger"
+                                                }
+                                            >
                                                 <div>
-                                                    <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
+                                                    <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
                                                         Threshold (votes needed)
                                                     </label>
                                                     <input
                                                         type="number"
-                                                        value={poll.threshold || 1}
+                                                        value={
+                                                            poll.threshold || 1
+                                                        }
                                                         min="1"
                                                         max="10000"
                                                         onInput={(e) => {
-                                                            const polls = [...(s().content.polls || [])];
-                                                            polls[pollIdx()] = { 
-                                                                ...poll, 
-                                                                threshold: parseInt(e.currentTarget.value, 10) || 1 
+                                                            const polls = [
+                                                                ...(s().content
+                                                                    .polls ||
+                                                                    []),
+                                                            ];
+                                                            polls[pollIdx()] = {
+                                                                ...poll,
+                                                                threshold:
+                                                                    parseInt(
+                                                                        e
+                                                                            .currentTarget
+                                                                            .value,
+                                                                        10,
+                                                                    ) || 1,
                                                             };
-                                                            updateContent({ polls });
+                                                            updateContent({
+                                                                polls,
+                                                            });
                                                         }}
-                                                        class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                        class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
+                                                    <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
                                                         Action Type
                                                     </label>
                                                     <select
-                                                        value={poll.action?.type || "skip-slide"}
+                                                        value={
+                                                            poll.action?.type ||
+                                                            "skip-slide"
+                                                        }
                                                         onChange={(e) => {
-                                                            const polls = [...(s().content.polls || [])];
-                                                            polls[pollIdx()] = { 
-                                                                ...poll, 
+                                                            const polls = [
+                                                                ...(s().content
+                                                                    .polls ||
+                                                                    []),
+                                                            ];
+                                                            polls[pollIdx()] = {
+                                                                ...poll,
                                                                 action: {
-                                                                    type: e.currentTarget.value as PollActionType,
-                                                                    metadata: poll.action?.metadata
-                                                                }
+                                                                    type: e
+                                                                        .currentTarget
+                                                                        .value as PollActionType,
+                                                                    metadata:
+                                                                        poll
+                                                                            .action
+                                                                            ?.metadata,
+                                                                },
                                                             };
-                                                            updateContent({ polls });
+                                                            updateContent({
+                                                                polls,
+                                                            });
                                                         }}
-                                                        class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                        class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                     >
-                                                        <option value="reorder-slides">Reorder Slides</option>
-                                                        <option value="delete-slides">Delete Slides</option>
-                                                        <option value="skip-slide">Skip Slide</option>
-                                                        <option value="jump-slide">Jump to Slide</option>
-                                                        <option value="display-results">Display Results</option>
-                                                        <option value="hide-slides">Hide Slides</option>
+                                                        <option value="reorder-slides">
+                                                            Reorder Slides
+                                                        </option>
+                                                        <option value="delete-slides">
+                                                            Delete Slides
+                                                        </option>
+                                                        <option value="skip-slide">
+                                                            Skip Slide
+                                                        </option>
+                                                        <option value="jump-slide">
+                                                            Jump to Slide
+                                                        </option>
+                                                        <option value="display-results">
+                                                            Display Results
+                                                        </option>
+                                                        <option value="hide-slides">
+                                                            Hide Slides
+                                                        </option>
                                                     </select>
                                                 </div>
                                             </Show>
                                         </div>
                                     )}
                                 </For>
-                                <Show when={(s().content.polls || []).length === 0}>
-                                    <p class="text-xs text-gray-500">No polls added. Add polls to enable interactive voting.</p>
+                                <Show
+                                    when={
+                                        (s().content.polls || []).length === 0
+                                    }
+                                >
+                                    <p class="text-xs text-gray-500">
+                                        No polls added. Add polls to enable
+                                        interactive voting.
+                                    </p>
                                 </Show>
                             </div>
 
                             {/* Buttons Section */}
                             <div class="mb-6 space-y-3">
                                 <div class="flex items-center justify-between">
-                                    <h3 class="text-md font-semibold text-bg-text">Buttons</h3>
+                                    <h3 class="text-md text-bg-text font-semibold">
+                                        Buttons
+                                    </h3>
                                     <button
                                         onClick={() => {
-                                            const currentButtons = s().content.buttons || [];
-                                            const availablePolls = s().content.polls || [];
-                                            if (currentButtons.length < 10 && availablePolls.length > 0) {
-                                                updateContent({ 
-                                                    buttons: [...currentButtons, {
-                                                        text: "Click Me",
-                                                        pollId: availablePolls[0].id,
-                                                        action: { type: "vote" },
-                                                    }]
+                                            const currentButtons =
+                                                s().content.buttons || [];
+                                            const availablePolls =
+                                                s().content.polls || [];
+                                            if (
+                                                currentButtons.length < 10 &&
+                                                availablePolls.length > 0
+                                            ) {
+                                                updateContent({
+                                                    buttons: [
+                                                        ...currentButtons,
+                                                        {
+                                                            text: "Click Me",
+                                                            pollId: availablePolls[0]
+                                                                .id,
+                                                            action: {
+                                                                type: "vote",
+                                                            },
+                                                        },
+                                                    ],
                                                 });
                                             }
                                         }}
-                                        disabled={(s().content.buttons || []).length >= 10 || (s().content.polls || []).length === 0}
-                                        class="rounded-lg bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                                        disabled={
+                                            (s().content.buttons || [])
+                                                .length >= 10 ||
+                                            (s().content.polls || []).length ===
+                                                0
+                                        }
+                                        class="bg-bg-secondary-btn-link text-text-secondary-btn-link hover:bg-bg-secondary-btn-link-hover cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         + Add Button
                                     </button>
                                 </div>
-                                <Show when={(s().content.polls || []).length === 0}>
-                                    <p class="text-xs text-gray-500">Add at least one poll before adding buttons.</p>
+                                <Show
+                                    when={
+                                        (s().content.polls || []).length === 0
+                                    }
+                                >
+                                    <p class="text-xs text-gray-500">
+                                        Add at least one poll before adding
+                                        buttons.
+                                    </p>
                                 </Show>
                                 <For each={s().content.buttons || []}>
                                     {(button, buttonIdx) => (
-                                        <div class="rounded-lg border border-border-sidebar bg-bg-card p-3 space-y-2">
+                                        <div class="border-border-sidebar bg-bg-card space-y-2 rounded-lg border p-3">
                                             <div class="flex items-center justify-between">
-                                                <h4 class="text-sm font-medium text-bg-text">Button #{buttonIdx() + 1}</h4>
+                                                <h4 class="text-bg-text text-sm font-medium">
+                                                    Button #{buttonIdx() + 1}
+                                                </h4>
                                                 <button
                                                     onClick={() => {
-                                                        const buttons = (s().content.buttons || []).filter((_, idx) => idx !== buttonIdx());
-                                                        updateContent({ buttons });
+                                                        const buttons = (
+                                                            s().content
+                                                                .buttons || []
+                                                        ).filter(
+                                                            (_, idx) =>
+                                                                idx !==
+                                                                buttonIdx(),
+                                                        );
+                                                        updateContent({
+                                                            buttons,
+                                                        });
                                                     }}
-                                                    class="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                                                    class="cursor-pointer text-xs text-red-400 transition-colors hover:text-red-300"
                                                 >
                                                     Delete
                                                 </button>
                                             </div>
                                             <div>
-                                                <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
+                                                <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
                                                     Button Text
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={button.text}
                                                     onInput={(e) => {
-                                                        const buttons = [...(s().content.buttons || [])];
-                                                        buttons[buttonIdx()] = { 
-                                                            ...button, 
-                                                            text: e.currentTarget.value 
+                                                        const buttons = [
+                                                            ...(s().content
+                                                                .buttons || []),
+                                                        ];
+                                                        buttons[buttonIdx()] = {
+                                                            ...button,
+                                                            text: e
+                                                                .currentTarget
+                                                                .value,
                                                         };
-                                                        updateContent({ buttons });
+                                                        updateContent({
+                                                            buttons,
+                                                        });
                                                     }}
                                                     maxLength={50}
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                 />
                                             </div>
                                             <div>
-                                                <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
-                                                    Poll ID (must match an existing poll)
+                                                <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
+                                                    Poll ID (must match an
+                                                    existing poll)
                                                 </label>
                                                 <select
                                                     value={button.pollId}
                                                     onChange={(e) => {
-                                                        const buttons = [...(s().content.buttons || [])];
-                                                        buttons[buttonIdx()] = { 
-                                                            ...button, 
-                                                            pollId: e.currentTarget.value 
+                                                        const buttons = [
+                                                            ...(s().content
+                                                                .buttons || []),
+                                                        ];
+                                                        buttons[buttonIdx()] = {
+                                                            ...button,
+                                                            pollId: e
+                                                                .currentTarget
+                                                                .value,
                                                         };
-                                                        updateContent({ buttons });
+                                                        updateContent({
+                                                            buttons,
+                                                        });
                                                     }}
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                 >
-                                                    <For each={s().content.polls || []}>
+                                                    <For
+                                                        each={
+                                                            s().content.polls ||
+                                                            []
+                                                        }
+                                                    >
                                                         {(poll) => (
-                                                            <option value={poll.id}>{poll.id} {poll.question ? `- ${poll.question}` : ""}</option>
+                                                            <option
+                                                                value={poll.id}
+                                                            >
+                                                                {poll.id}{" "}
+                                                                {poll.question
+                                                                    ? `- ${poll.question}`
+                                                                    : ""}
+                                                            </option>
                                                         )}
                                                     </For>
                                                 </select>
                                             </div>
                                             <div>
-                                                <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
+                                                <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
                                                     Action Type
                                                 </label>
                                                 <select
-                                                    value={button.action?.type || "vote"}
+                                                    value={
+                                                        button.action?.type ||
+                                                        "vote"
+                                                    }
                                                     onChange={(e) => {
-                                                        const buttons = [...(s().content.buttons || [])];
-                                                        buttons[buttonIdx()] = { 
-                                                            ...button, 
+                                                        const buttons = [
+                                                            ...(s().content
+                                                                .buttons || []),
+                                                        ];
+                                                        buttons[buttonIdx()] = {
+                                                            ...button,
                                                             action: {
-                                                                type: e.currentTarget.value as "vote" | "vote-with-value",
-                                                                value: button.action?.value
-                                                            }
+                                                                type: e
+                                                                    .currentTarget
+                                                                    .value as
+                                                                    | "vote"
+                                                                    | "vote-with-value",
+                                                                value: button
+                                                                    .action
+                                                                    ?.value,
+                                                            },
                                                         };
-                                                        updateContent({ buttons });
+                                                        updateContent({
+                                                            buttons,
+                                                        });
                                                     }}
-                                                    class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                    class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                 >
-                                                    <option value="vote">Vote</option>
-                                                    <option value="vote-with-value">Vote with Value</option>
+                                                    <option value="vote">
+                                                        Vote
+                                                    </option>
+                                                    <option value="vote-with-value">
+                                                        Vote with Value
+                                                    </option>
                                                 </select>
                                             </div>
-                                            <Show when={button.action?.type === "vote-with-value"}>
+                                            <Show
+                                                when={
+                                                    button.action?.type ===
+                                                    "vote-with-value"
+                                                }
+                                            >
                                                 <div>
-                                                    <label class="mb-1 block text-xs font-medium text-bg-text opacity-70">
+                                                    <label class="text-bg-text mb-1 block text-xs font-medium opacity-70">
                                                         Value
                                                     </label>
                                                     <input
                                                         type="text"
-                                                        value={button.action?.value?.toString() || ""}
+                                                        value={
+                                                            button.action?.value?.toString() ||
+                                                            ""
+                                                        }
                                                         onInput={(e) => {
-                                                            const buttons = [...(s().content.buttons || [])];
-                                                            const value = e.currentTarget.value;
-                                                            buttons[buttonIdx()] = { 
-                                                                ...button, 
+                                                            const buttons = [
+                                                                ...(s().content
+                                                                    .buttons ||
+                                                                    []),
+                                                            ];
+                                                            const value =
+                                                                e.currentTarget
+                                                                    .value;
+                                                            buttons[
+                                                                buttonIdx()
+                                                            ] = {
+                                                                ...button,
                                                                 action: {
                                                                     type: "vote-with-value",
-                                                                    value: isNaN(Number(value)) ? value : Number(value)
-                                                                }
+                                                                    value: isNaN(
+                                                                        Number(
+                                                                            value,
+                                                                        ),
+                                                                    )
+                                                                        ? value
+                                                                        : Number(
+                                                                              value,
+                                                                          ),
+                                                                },
                                                             };
-                                                            updateContent({ buttons });
+                                                            updateContent({
+                                                                buttons,
+                                                            });
                                                         }}
                                                         placeholder="Enter value (number or string)"
-                                                        class="w-full rounded-lg border border-border-sidebar bg-bg-input px-2 py-1.5 text-xs text-bg-text focus:border-bg-primary-btn-link focus:outline-none"
+                                                        class="border-border-sidebar bg-bg-input text-bg-text focus:border-bg-primary-btn-link w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none"
                                                     />
                                                 </div>
                                             </Show>
                                         </div>
                                     )}
                                 </For>
-                                <Show when={(s().content.buttons || []).length === 0 && (s().content.polls || []).length > 0}>
-                                    <p class="text-xs text-gray-500">No buttons added. Buttons allow users to interact with polls.</p>
+                                <Show
+                                    when={
+                                        (s().content.buttons || []).length ===
+                                            0 &&
+                                        (s().content.polls || []).length > 0
+                                    }
+                                >
+                                    <p class="text-xs text-gray-500">
+                                        No buttons added. Buttons allow users to
+                                        interact with polls.
+                                    </p>
                                 </Show>
                             </div>
                         </div>
